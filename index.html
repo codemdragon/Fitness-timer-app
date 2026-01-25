@@ -20,7 +20,7 @@
             background-color: var(--dark-bg);
             color: #e0e0e0;
             font-family: 'Rajdhani', sans-serif;
-            overflow-x: hidden;
+            overflow: hidden; /* Prevent body scroll, handled by internal pages */
             touch-action: manipulation;
         }
 
@@ -40,7 +40,6 @@
             height: 150px;
             overflow-y: scroll;
             scrollbar-width: none;
-            -ms-overflow-style: none;
             mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
             -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
         }
@@ -75,104 +74,137 @@
             height: 100%;
             top: 0;
             left: 0;
+            overflow-y: auto;
+            padding-bottom: 80px; /* Space for fixed buttons */
         }
         .page-hidden {
-            transform: translateX(100%);
+            transform: translateY(20px);
             opacity: 0;
             pointer-events: none;
         }
+
+        /* Landscape Adjustments */
+        @media (orientation: landscape) {
+            .timer-layout {
+                flex-direction: row !important;
+                justify-content: space-around !important;
+                align-items: center !important;
+                height: 100% !important;
+                padding-top: 0 !important;
+            }
+            .timer-ring-container {
+                width: 40vh !important;
+                height: 40vh !important;
+            }
+            .timer-display-text {
+                font-size: 10vh !important;
+            }
+        }
     </style>
 </head>
-<body class="h-screen flex flex-col items-center justify-center p-4">
+<body class="h-screen flex items-center justify-center p-2 sm:p-4">
 
-    <div class="relative w-full max-w-md h-[90vh] glass-panel overflow-hidden">
+    <!-- Container -->
+    <div class="relative w-full max-w-4xl h-full max-h-[95vh] glass-panel overflow-hidden">
         
-        <header class="p-6 flex justify-between items-center border-b border-white/10">
-            <h1 class="font-orbitron text-xl neon-text-cyan tracking-widest">AETHER.IO</h1>
-            <button onclick="navigate('home')" id="home-btn" class="hidden text-white/50 hover:text-white">
+        <header class="absolute top-0 left-0 w-full p-4 flex justify-between items-center border-b border-white/10 z-20 bg-dark-bg/80 backdrop-blur-md">
+            <h1 class="font-orbitron text-lg sm:text-xl neon-text-cyan tracking-widest">AETHER.IO</h1>
+            <button onclick="navigate('home')" id="home-btn" class="hidden text-white/50 hover:text-white px-3 py-1">
                 <i class="fas fa-home text-lg"></i>
             </button>
         </header>
 
         <!-- HOME SCREEN -->
-        <div id="page-home" class="page p-6 flex flex-col space-y-6 overflow-y-auto pt-24">
-            <div class="text-center">
-                <h2 class="text-3xl font-bold mb-2 text-white">My Circuits</h2>
+        <div id="page-home" class="page p-6 pt-24">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-white">My Circuits</h2>
                 <p class="text-white/40">Persistent Interval Storage</p>
             </div>
-            <div id="circuit-list" class="space-y-4"></div>
-            <button onclick="createNewCircuit()" class="w-full py-4 rounded-2xl border-2 border-dashed border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition">
-                <i class="fas fa-plus mr-2"></i> Create New Circuit
-            </button>
+            <div id="circuit-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto"></div>
+            <div class="mt-8 max-w-2xl mx-auto">
+                <button onclick="createNewCircuit()" class="w-full py-4 rounded-2xl border-2 border-dashed border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition">
+                    <i class="fas fa-plus mr-2"></i> Create New Circuit
+                </button>
+            </div>
         </div>
 
         <!-- EDITOR SCREEN -->
-        <div id="page-editor" class="page p-6 flex flex-col space-y-4 overflow-y-auto pt-24 page-hidden">
-            <div class="flex items-center space-x-3 mb-4">
-                <input id="circuit-name-input" type="text" placeholder="Circuit Name" class="bg-transparent text-2xl font-bold border-b border-white/20 focus:border-cyan-400 outline-none w-full text-white">
+        <div id="page-editor" class="page p-6 pt-24 page-hidden">
+            <div class="max-w-2xl mx-auto">
+                <div class="flex items-center space-x-3 mb-6">
+                    <input id="circuit-name-input" type="text" placeholder="Circuit Name" class="bg-transparent text-2xl font-bold border-b border-white/20 focus:border-cyan-400 outline-none w-full text-white">
+                </div>
+                <div id="task-list" class="space-y-3 pb-24"></div>
             </div>
-            <div id="task-list" class="space-y-3 pb-32"></div>
-            <div class="fixed bottom-10 left-0 w-full px-10 flex space-x-3">
-                <button onclick="showTaskModal('workout')" class="flex-1 py-3 neon-bg-cyan text-black font-bold rounded-xl text-sm">+ WORKOUT</button>
-                <button onclick="showTaskModal('break')" class="flex-1 py-3 bg-white/10 text-white font-bold rounded-xl text-sm border border-white/20">+ BREAK</button>
-                <button onclick="saveCircuit()" class="w-12 h-12 flex items-center justify-center bg-green-500 text-black rounded-xl shadow-lg">
-                    <i class="fas fa-save"></i>
-                </button>
+            
+            <div class="fixed bottom-6 left-0 w-full px-6 flex justify-center z-30">
+                <div class="w-full max-w-xl flex space-x-3 glass-panel p-3 border-white/20">
+                    <button onclick="showTaskModal('workout')" class="flex-1 py-3 neon-bg-cyan text-black font-bold rounded-xl text-sm">+ WORKOUT</button>
+                    <button onclick="showTaskModal('break')" class="flex-1 py-3 bg-white/10 text-white font-bold rounded-xl text-sm border border-white/20">+ BREAK</button>
+                    <button onclick="saveCircuit()" class="w-12 h-12 flex items-center justify-center bg-green-500 text-black rounded-xl shadow-lg shrink-0">
+                        <i class="fas fa-save"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- TIMER SCREEN -->
-        <div id="page-timer" class="page p-6 flex flex-col items-center justify-center pt-10 page-hidden">
-            <div class="text-center mb-8">
-                <h2 id="current-circuit-title" class="text-white/40 tracking-widest mb-1 uppercase">CIRCUIT</h2>
-                <h1 id="current-task-name" class="text-4xl font-orbitron font-bold neon-text-cyan uppercase">READY</h1>
-            </div>
-            <div class="relative w-64 h-64 flex items-center justify-center">
-                <svg class="w-full h-full -rotate-90">
-                    <circle cx="128" cy="128" r="120" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="transparent" />
-                    <circle id="timer-progress" cx="128" cy="128" r="120" stroke="var(--neon-cyan)" stroke-width="8" fill="transparent" stroke-dasharray="753.98" stroke-dashoffset="0" stroke-linecap="round" />
-                </svg>
-                <div class="absolute flex flex-col items-center">
-                    <span id="timer-display" class="text-6xl font-orbitron font-bold text-white">00:00</span>
-                    <span id="next-task-info" class="text-xs text-white/30 mt-2 uppercase">Next: Finish</span>
+        <div id="page-timer" class="page page-hidden flex flex-col pt-20 overflow-hidden">
+            <div class="timer-layout flex flex-col items-center justify-center flex-1 space-y-8 landscape:space-y-0">
+                
+                <div class="text-center landscape:text-left">
+                    <h2 id="current-circuit-title" class="text-white/40 tracking-widest mb-1 uppercase text-sm">CIRCUIT</h2>
+                    <h1 id="current-task-name" class="text-3xl sm:text-4xl font-orbitron font-bold neon-text-cyan uppercase break-words px-4">READY</h1>
+                    <div id="next-task-info" class="text-xs text-white/30 mt-2 uppercase">Next: Finish</div>
                 </div>
-            </div>
-            <div class="flex space-x-6 mt-12">
-                <button id="timer-ctrl-btn" onclick="toggleTimer()" class="w-20 h-20 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-2xl shadow-[0_0_20px_rgba(0,243,255,0.2)]">
-                    <i class="fas fa-play"></i>
-                </button>
-                <button onclick="stopTimer()" class="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-2xl border border-white/10">
-                    <i class="fas fa-stop"></i>
-                </button>
+
+                <div class="timer-ring-container relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center">
+                    <svg class="w-full h-full -rotate-90">
+                        <circle cx="50%" cy="50%" r="45%" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="transparent" />
+                        <circle id="timer-progress" cx="50%" cy="50%" r="45%" stroke="var(--neon-cyan)" stroke-width="8" fill="transparent" stroke-dasharray="1000" stroke-dashoffset="0" stroke-linecap="round" />
+                    </svg>
+                    <div class="absolute flex flex-col items-center">
+                        <span id="timer-display" class="timer-display-text text-5xl sm:text-6xl font-orbitron font-bold text-white">00:00</span>
+                    </div>
+                </div>
+
+                <div class="flex space-x-6">
+                    <button id="timer-ctrl-btn" onclick="toggleTimer()" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-2xl shadow-[0_0_20px_rgba(0,243,255,0.2)]">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button onclick="stopTimer()" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-2xl border border-white/10">
+                        <i class="fas fa-stop"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- TASK MODAL -->
-    <div id="task-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-end justify-center z-50 opacity-0 pointer-events-none transition-opacity">
-        <div class="w-full max-w-md glass-panel p-8 rounded-t-[40px] transform translate-y-full transition-transform duration-300">
-            <h3 id="modal-title" class="text-2xl font-bold mb-6 text-center text-white">Add Stage</h3>
-            <input id="modal-task-name" type="text" placeholder="Task Name" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl mb-6 outline-none focus:border-cyan-400 text-white">
-            <div class="flex items-center justify-around mb-8 relative">
+    <div id="task-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-end justify-center z-50 opacity-0 pointer-events-none transition-opacity">
+        <div class="w-full max-w-md glass-panel p-6 sm:p-8 rounded-t-[40px] transform translate-y-full transition-transform duration-300">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-center text-white">Add Stage</h3>
+            <input id="modal-task-name" type="text" placeholder="Task Name" class="w-full bg-white/5 border border-white/10 p-3 rounded-xl mb-4 outline-none focus:border-cyan-400 text-white">
+            <div class="flex items-center justify-around mb-6 relative h-40">
                 <div class="absolute h-[50px] w-full border-y border-cyan-400/30 pointer-events-none"></div>
                 <div class="flex flex-col items-center">
-                    <span class="text-[10px] uppercase text-white/40 mb-1">Hours</span>
-                    <div id="picker-h" class="picker-container w-16" onscroll="handlePickerScroll(this)"></div>
+                    <span class="text-[10px] uppercase text-white/40 mb-1">H</span>
+                    <div id="picker-h" class="picker-container w-12" onscroll="handlePickerScroll(this)"></div>
                 </div>
-                <div class="text-2xl text-cyan-400">:</div>
+                <div class="text-xl text-cyan-400">:</div>
                 <div class="flex flex-col items-center">
-                    <span class="text-[10px] uppercase text-white/40 mb-1">Min</span>
-                    <div id="picker-m" class="picker-container w-16" onscroll="handlePickerScroll(this)"></div>
+                    <span class="text-[10px] uppercase text-white/40 mb-1">M</span>
+                    <div id="picker-m" class="picker-container w-12" onscroll="handlePickerScroll(this)"></div>
                 </div>
-                <div class="text-2xl text-cyan-400">:</div>
+                <div class="text-xl text-cyan-400">:</div>
                 <div class="flex flex-col items-center">
-                    <span class="text-[10px] uppercase text-white/40 mb-1">Sec</span>
-                    <div id="picker-s" class="picker-container w-16" onscroll="handlePickerScroll(this)"></div>
+                    <span class="text-[10px] uppercase text-white/40 mb-1">S</span>
+                    <div id="picker-s" class="picker-container w-12" onscroll="handlePickerScroll(this)"></div>
                 </div>
             </div>
-            <div class="flex space-x-4">
-                <button onclick="closeTaskModal()" class="flex-1 py-4 rounded-2xl bg-white/5 font-bold text-white">CANCEL</button>
-                <button onclick="confirmTaskAction()" class="flex-1 py-4 rounded-2xl neon-bg-cyan text-black font-bold">CONFIRM</button>
+            <div class="flex space-x-3">
+                <button onclick="closeTaskModal()" class="flex-1 py-3 rounded-xl bg-white/5 font-bold text-white text-sm">CANCEL</button>
+                <button onclick="confirmTaskAction()" class="flex-1 py-3 rounded-xl neon-bg-cyan text-black font-bold text-sm">CONFIRM</button>
             </div>
         </div>
     </div>
@@ -202,7 +234,6 @@
                 db = e.target.result;
                 loadState();
             };
-            request.onerror = (e) => console.error("Database error", e);
         };
 
         const loadState = () => {
@@ -266,14 +297,14 @@
             list.innerHTML = '';
             circuits.forEach(c => {
                 const card = document.createElement('div');
-                card.className = 'glass-panel p-5 flex justify-between items-center group cursor-pointer active:scale-95 transition';
+                card.className = 'glass-panel p-4 flex justify-between items-center group cursor-pointer active:scale-95 transition';
                 card.onclick = () => startCircuit(c.id);
                 card.innerHTML = `
                     <div class="flex-1">
-                        <h3 class="text-xl font-bold text-white">${c.name}</h3>
-                        <p class="text-white/30 text-sm">${c.tasks.length} Stages • ${formatTime(c.tasks.reduce((a, b) => a + b.duration, 0))}</p>
+                        <h3 class="text-lg font-bold text-white">${c.name}</h3>
+                        <p class="text-white/30 text-xs">${c.tasks.length} Stages • ${formatTime(c.tasks.reduce((a, b) => a + b.duration, 0))}</p>
                     </div>
-                    <div class="flex space-x-2">
+                    <div class="flex space-x-1">
                         <button onclick="event.stopPropagation(); editCircuit('${c.id}')" class="text-white/40 hover:text-cyan-400 p-2"><i class="fas fa-edit"></i></button>
                         <button onclick="event.stopPropagation(); deleteFromDB('${c.id}')" class="text-white/40 hover:text-red-400 p-2"><i class="fas fa-trash-alt"></i></button>
                     </div>
@@ -329,19 +360,19 @@
             list.innerHTML = '';
             currentCircuit.tasks.forEach((task, idx) => {
                 const card = document.createElement('div');
-                card.className = `p-4 rounded-xl flex justify-between items-center cursor-pointer ${task.type === 'workout' ? 'bg-cyan-500/10 border border-cyan-500/20' : 'bg-white/5 border border-white/10'}`;
+                card.className = `p-3 rounded-xl flex justify-between items-center cursor-pointer ${task.type === 'workout' ? 'bg-cyan-500/10 border border-cyan-500/20' : 'bg-white/5 border border-white/10'}`;
                 card.onclick = () => showTaskModal(task.type, idx);
                 card.innerHTML = `
                     <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center ${task.type === 'workout' ? 'bg-cyan-400 text-black' : 'bg-white/20 text-white'}">
-                            <i class="fas ${task.type === 'workout' ? 'fa-dumbbell' : 'fa-mug-hot'} text-xs"></i>
+                        <div class="w-7 h-7 rounded-full flex items-center justify-center ${task.type === 'workout' ? 'bg-cyan-400 text-black' : 'bg-white/20 text-white'}">
+                            <i class="fas ${task.type === 'workout' ? 'fa-dumbbell' : 'fa-mug-hot'} text-[10px]"></i>
                         </div>
                         <div>
                             <p class="font-bold text-sm text-white">${task.name}</p>
-                            <p class="text-xs text-white/40">${formatTime(task.duration)}</p>
+                            <p class="text-[10px] text-white/40 uppercase tracking-tighter">${formatTime(task.duration)}</p>
                         </div>
                     </div>
-                    <button onclick="event.stopPropagation(); currentCircuit.tasks.splice(${idx}, 1); renderTasks();" class="text-white/20 p-2"><i class="fas fa-trash"></i></button>
+                    <button onclick="event.stopPropagation(); currentCircuit.tasks.splice(${idx}, 1); renderTasks();" class="text-white/20 p-2"><i class="fas fa-trash text-sm"></i></button>
                 `;
                 list.appendChild(card);
             });
@@ -386,7 +417,7 @@
             Object.keys(vals).forEach(id => {
                 const el = document.getElementById(`picker-${id}`);
                 el.scrollTop = vals[id] * 50;
-                handlePickerScroll(el);
+                setTimeout(() => handlePickerScroll(el), 10);
             });
         };
 
@@ -440,7 +471,10 @@
         const updateTimerUI = () => {
             document.getElementById('timer-display').innerText = formatTime(timerSeconds);
             const progress = document.getElementById('timer-progress');
-            const offset = 753.98 - (753.98 * (timerSeconds / totalTaskSeconds));
+            const radius = 45; // percentage
+            const circumference = 2 * Math.PI * radius; // This is illustrative, dasharray/offset use pixels or svg units
+            // We use a fixed 1000 for dasharray in HTML and calculate relative offset
+            const offset = 1000 - (1000 * (timerSeconds / totalTaskSeconds));
             progress.style.strokeDashoffset = offset;
         };
 
@@ -481,6 +515,9 @@
             initDB();
             populatePickers();
         };
+
+        // Ensure progress bar circle math matches svg units
+        window.addEventListener('resize', updateTimerUI);
     </script>
 </body>
 </html>
