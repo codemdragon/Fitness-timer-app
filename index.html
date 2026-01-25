@@ -582,13 +582,13 @@
             if (!isPaused) {
                 endTime = Date.now() + (timerSeconds * 1000);
                 activeTimer = setInterval(() => {
-                    const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
-                    timerSeconds = remaining;
-                    updateTimerUI();
-                    saveSession();
+                    const now = Date.now();
 
-                    if (timerSeconds <= 0) {
+                    if (now >= endTime) {
                         clearInterval(activeTimer);
+                        timerSeconds = 0;
+                        updateTimerUI();
+
                         currentTaskIdx++;
 
                         if (currentTaskIdx < currentCircuit.tasks.length) {
@@ -607,8 +607,14 @@
                                 finishCircuit();
                             }
                         }
+                        return;
                     }
-                }, 100); // Higher frequency for smoother feel and accuracy
+
+                    // Still running
+                    timerSeconds = Math.ceil((endTime - now) / 1000);
+                    updateTimerUI();
+                    saveSession();
+                }, 500); // authoritative time check, frequency matters less
             } else {
                 clearInterval(activeTimer);
             }
@@ -801,6 +807,33 @@
                 e.preventDefault();
                 deferredPrompt = e;
                 document.getElementById('install-prompt').classList.remove('hidden');
+            });
+
+            // Focus Recovery
+            document.addEventListener("visibilitychange", () => {
+                if (!document.hidden && !isPaused && endTime) {
+                    if (Date.now() >= endTime) {
+                        clearInterval(activeTimer);
+                        timerSeconds = 0;
+                        updateTimerUI();
+
+                        currentTaskIdx++;
+                        if (currentTaskIdx < currentCircuit.tasks.length) {
+                            setupTask(currentTaskIdx);
+                            toggleTimer();
+                        } else if (isLooping) {
+                            currentTaskIdx = 0;
+                            setupTask(0);
+                            toggleTimer();
+                        } else {
+                            finishCircuit();
+                        }
+                    } else {
+                        // Just catch up the display
+                        timerSeconds = Math.ceil((endTime - Date.now()) / 1000);
+                        updateTimerUI();
+                    }
+                }
             });
         };
 
