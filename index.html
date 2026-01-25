@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CircuitFlow PWA</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>CircuitFlow</h1>
+            <button id="add-circuit-btn">+ New</button>
+        </header>
+
+        <main id="circuit-list">
+            </main>
+
+        <div id="timer-overlay" class="hidden">
+            <div class="overlay-content">
+                <h2 id="current-task-name">Get Ready</h2>
+                <div id="big-timer">00:00</div>
+                <p id="next-task">Next: --</p>
+                <div class="controls">
+                    <button id="pause-btn">Pause</button>
+                    <button id="stop-btn">Quit</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="editor-modal" class="hidden">
+            <div class="modal-content">
+                <h3>Edit Circuit</h3>
+                <input type="text" id="circuit-name" placeholder="Circuit Name (e.g. Leg Day)">
+                <div id="steps-container"></div>
+                <button id="add-step-btn">+ Add Timer/Rest</button>
+                <div class="modal-actions">
+                    <button id="save-circuit">Save</button>
+                    <button id="close-modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js");
+        }
+    </script>
+</body>
+</html>
