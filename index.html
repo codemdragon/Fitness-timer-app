@@ -2,52 +2,578 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CircuitFlow PWA</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON CIRCUIT</title>
+    
     <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#050505">
+
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #050505;
+            --surface: rgba(20, 20, 25, 0.9);
+            --border: 1px solid rgba(0, 243, 255, 0.2);
+            --cyan: #00f3ff;
+            --pink: #ff0055;
+            --text: #e0e0e0;
+            --muted: #666;
+            --font-main: 'Rajdhani', sans-serif;
+            --font-mono: 'Roboto Mono', monospace;
+            --picker-h: 50px; 
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+
+        body {
+            margin: 0; background: var(--bg); color: var(--text);
+            font-family: var(--font-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+            background-image: linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        /* --- UI COMPONENTS --- */
+        header { padding: 15px; text-align: center; border-bottom: var(--border); background: rgba(5,5,5,0.95); backdrop-filter: blur(10px); z-index: 10; }
+        h1 { margin: 0; color: var(--cyan); text-transform: uppercase; letter-spacing: 3px; text-shadow: 0 0 10px rgba(0,243,255,0.4); font-size: 1.4rem; }
+
+        main { flex: 1; overflow-y: auto; position: relative; scrollbar-width: none; }
+        .view { display: none; padding: 20px; padding-bottom: 100px; animation: fadeUp 0.3s ease; }
+        .view.active { display: block; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Buttons */
+        button {
+            background: transparent; border: 1px solid var(--cyan); color: var(--cyan);
+            padding: 12px; font-family: var(--font-main); font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; cursor: pointer; transition: 0.2s;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+        button:active { transform: scale(0.98); background: rgba(0,243,255,0.1); }
+        .btn-fill { background: rgba(0,243,255,0.15); box-shadow: 0 0 10px rgba(0,243,255,0.1); }
+        .btn-pink { border-color: var(--pink); color: var(--pink); background: rgba(255,0,85,0.1); }
+        .btn-fab { 
+            position: fixed; bottom: 85px; right: 20px; width: 60px; height: 60px; 
+            border-radius: 50%; clip-path: none; background: var(--cyan); color: #000; font-size: 2rem;
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px var(--cyan); z-index: 50;
+        }
+
+        /* Lists & Cards */
+        .card { 
+            background: var(--surface); border: var(--border); padding: 15px; margin-bottom: 10px; 
+            display: flex; justify-content: space-between; align-items: center; border-radius: 4px;
+        }
+        .card h3 { margin: 0; font-size: 1.1rem; color: #fff; }
+        .card p { margin: 5px 0 0; color: var(--muted); font-size: 0.8rem; font-family: var(--font-mono); }
+        
+        /* Step List in Editor */
+        .step-item {
+            display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.02);
+            border-left: 2px solid var(--muted); margin-bottom: 5px;
+        }
+        .step-item.type-work { border-color: var(--cyan); }
+        .step-item.type-break { border-color: var(--pink); }
+        .step-name { flex: 1; margin-left: 10px; font-weight: bold; }
+        .step-time { font-family: var(--font-mono); color: var(--text); }
+
+        /* --- SCROLL PICKER --- */
+        .picker-wrapper { display: flex; gap: 10px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: var(--border); margin: 20px 0; }
+        .picker-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+        .picker-head { font-size: 0.7rem; color: var(--muted); margin-bottom: 5px; }
+        .picker-view {
+            height: 150px; width: 100%; overflow: hidden; position: relative; background: #000;
+            mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+        }
+        .picker-track { transition: transform 0.1s; will-change: transform; }
+        .picker-cell { 
+            height: var(--picker-h); display: flex; align-items: center; justify-content: center; 
+            font-size: 1.5rem; color: #444; font-family: var(--font-mono); 
+        }
+        .picker-cell.selected { color: var(--cyan); font-weight: bold; font-size: 1.8rem; text-shadow: 0 0 10px var(--cyan); }
+        .picker-highlight { 
+            position: absolute; top: 50%; width: 100%; height: 1px; background: var(--cyan); opacity: 0.3; transform: translateY(-50%); pointer-events: none;
+        }
+
+        /* --- TIMER --- */
+        .timer-display { font-size: 6rem; text-align: center; font-family: var(--font-mono); font-weight: 700; margin: 20px 0; text-shadow: 0 0 20px rgba(255,255,255,0.1); }
+        .timer-label { text-align: center; color: var(--cyan); font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
+        .timer-next { text-align: center; color: var(--muted); font-size: 0.9rem; margin-top: 10px; font-family: var(--font-mono); }
+        .progress-bar { height: 4px; background: #222; width: 100%; margin-bottom: 20px; }
+        .progress-fill { height: 100%; background: var(--cyan); width: 100%; box-shadow: 0 0 10px var(--cyan); transition: width 1s linear; }
+
+        /* --- NAV --- */
+        nav { 
+            position: fixed; bottom: 0; width: 100%; height: 60px; background: rgba(5,5,5,0.95); 
+            border-top: var(--border); display: flex; justify-content: space-around; backdrop-filter: blur(10px); z-index: 100;
+        }
+        .nav-btn { flex: 1; background: none; border: none; color: var(--muted); clip-path: none; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; }
+        .nav-btn span { font-size: 1.4rem; margin-bottom: 2px; }
+        .nav-btn.active { color: var(--cyan); }
+
+        /* Utils */
+        .hidden { display: none !important; }
+        input[type="text"] { width: 100%; padding: 12px; background: #111; border: 1px solid #333; color: white; font-family: var(--font-mono); outline: none; }
+        input[type="text"]:focus { border-color: var(--cyan); }
+    </style>
 </head>
 <body>
-    <div id="app">
-        <header>
-            <h1>CircuitFlow</h1>
-            <button id="add-circuit-btn">+ New</button>
-        </header>
 
-        <main id="circuit-list">
-            </main>
+    <header>
+        <h1 id="header-title">NEON CIRCUIT</h1>
+    </header>
 
-        <div id="timer-overlay" class="hidden">
-            <div class="overlay-content">
-                <h2 id="current-task-name">Get Ready</h2>
-                <div id="big-timer">00:00</div>
-                <p id="next-task">Next: --</p>
-                <div class="controls">
-                    <button id="pause-btn">Pause</button>
-                    <button id="stop-btn">Quit</button>
+    <main>
+        <section id="view-library" class="view active">
+            <div id="circuit-list"></div>
+            <div style="text-align:center; color:var(--muted); margin-top:50px; display:none;" id="empty-msg">NO CIRCUITS FOUND</div>
+        </section>
+
+        <section id="view-editor" class="view">
+            <input type="text" id="edit-name" placeholder="CIRCUIT NAME (e.g. TABATA)">
+            
+            <div style="display:flex; justify-content:space-between; margin-top:20px; align-items:center;">
+                <span style="color:var(--muted); font-size:0.8rem;">SEQUENCE</span>
+                <button onclick="editor.clearSteps()" style="font-size:0.7rem; padding:5px 10px; border-color:var(--pink); color:var(--pink);">CLEAR</button>
+            </div>
+            
+            <div id="editor-steps" style="margin-top:10px; min-height: 50px;"></div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
+                <button onclick="editor.openStepCreator('work')">+ WORKOUT</button>
+                <button onclick="editor.openStepCreator('break')" class="btn-pink">+ BREAK</button>
+            </div>
+
+            <button class="btn-fill" style="width:100%; margin-top:30px;" onclick="editor.saveCircuit()">SAVE CIRCUIT</button>
+            <button style="width:100%; margin-top:10px; border:none; color:var(--muted);" onclick="app.nav('view-library')">CANCEL</button>
+        </section>
+
+        <section id="view-step-creator" class="view">
+            <h2 id="step-creator-title" style="color:var(--cyan); text-align:center;">CONFIGURE STEP</h2>
+            <input type="text" id="step-name" placeholder="ACTIVITY NAME">
+            
+            <div class="picker-wrapper">
+                <div class="picker-col">
+                    <div class="picker-head">MIN</div>
+                    <div class="picker-view"><div class="picker-track" id="track-m"></div><div class="picker-highlight"></div></div>
+                </div>
+                <div class="picker-col">
+                    <div class="picker-head">SEC</div>
+                    <div class="picker-view"><div class="picker-track" id="track-s"></div><div class="picker-highlight"></div></div>
                 </div>
             </div>
-        </div>
 
-        <div id="editor-modal" class="hidden">
-            <div class="modal-content">
-                <h3>Edit Circuit</h3>
-                <input type="text" id="circuit-name" placeholder="Circuit Name (e.g. Leg Day)">
-                <div id="steps-container"></div>
-                <button id="add-step-btn">+ Add Timer/Rest</button>
-                <div class="modal-actions">
-                    <button id="save-circuit">Save</button>
-                    <button id="close-modal">Cancel</button>
-                </div>
+            <button class="btn-fill" style="width:100%" onclick="editor.confirmStep()">ADD TO SEQUENCE</button>
+            <button style="width:100%; margin-top:10px; border:none; color:var(--muted);" onclick="app.nav('view-editor')">BACK</button>
+        </section>
+
+        <section id="view-timer" class="view">
+            <div class="progress-bar"><div class="progress-fill" id="t-bar"></div></div>
+            
+            <div id="t-label" class="timer-label">READY</div>
+            <div id="t-time" class="timer-display">00:00</div>
+            <div id="t-next" class="timer-next">NEXT: --</div>
+
+            <div style="display:flex; gap:10px; margin-top:40px;">
+                <button id="btn-toggle" class="btn-fill" style="flex:1" onclick="timer.toggle()">START</button>
+                <button class="btn-pink" style="flex:1" onclick="timer.stop()">EXIT</button>
             </div>
-        </div>
-    </div>
 
-    <script src="app.js"></script>
-    <script>
-        if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.register("sw.js");
+            <div style="text-align:center; margin-top:20px;">
+                <input type="checkbox" id="loop-circuit"> <span style="color:var(--muted); font-size:0.9rem;">LOOP CIRCUIT</span>
+            </div>
+        </section>
+    </main>
+
+    <button id="fab-add" class="btn-fab" onclick="editor.newCircuit()">+</button>
+
+    <nav id="navbar">
+        <button class="nav-btn active" onclick="app.nav('view-library')"><span>☰</span>LIBRARY</button>
+        <button class="nav-btn" onclick="app.nav('view-editor')"><span>✎</span>EDITOR</button>
+        <button class="nav-btn" onclick="app.nav('view-timer')"><span>⏱</span>ACTIVE</button>
+    </nav>
+
+<script>
+/* --- AUDIO ENGINE --- */
+const audio = {
+    ctx: null,
+    init: () => {
+        if(!audio.ctx) audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    },
+    beep: (type) => {
+        if(!audio.ctx) audio.init();
+        const osc = audio.ctx.createOscillator();
+        const gain = audio.ctx.createGain();
+        osc.connect(gain);
+        gain.connect(audio.ctx.destination);
+        
+        // Configs
+        const now = audio.ctx.currentTime;
+        if(type === 'high') { osc.frequency.value = 880; gain.gain.value = 0.1; osc.start(now); osc.stop(now + 0.1); }
+        else if(type === 'low') { osc.frequency.value = 440; gain.gain.value = 0.1; osc.start(now); osc.stop(now + 0.3); }
+        else if(type === 'end') { 
+            osc.frequency.setValueAtTime(880, now);
+            osc.frequency.exponentialRampToValueAtTime(110, now + 0.5);
+            gain.gain.value = 0.2; osc.start(now); osc.stop(now + 0.5);
         }
-    </script>
+    }
+};
+
+/* --- SCROLL PICKER LOGIC --- */
+class ScrollWheel {
+    constructor(elementId, max, defaultVal = 0) {
+        this.track = document.getElementById(elementId);
+        this.max = max;
+        this.val = defaultVal;
+        this.itemH = 50; 
+        this.isDragging = false;
+        this.startY = 0;
+        this.currentY = 0;
+        
+        // Render
+        this.track.innerHTML = '';
+        for(let i=0; i<=max; i++){
+            let d = document.createElement('div');
+            d.className = 'picker-cell';
+            d.innerText = i.toString().padStart(2,'0');
+            this.track.appendChild(d);
+        }
+        
+        // Events
+        const wrapper = this.track.parentElement;
+        wrapper.addEventListener('touchstart', e => this.start(e.touches[0].clientY));
+        wrapper.addEventListener('touchmove', e => { e.preventDefault(); this.move(e.touches[0].clientY); });
+        wrapper.addEventListener('touchend', () => this.end());
+        
+        wrapper.addEventListener('mousedown', e => this.start(e.clientY));
+        document.addEventListener('mousemove', e => this.move(e.clientY));
+        document.addEventListener('mouseup', () => this.end());
+
+        this.set(defaultVal);
+    }
+
+    start(y) { this.isDragging = true; this.startY = y; this.track.style.transition = 'none'; }
+    
+    move(y) {
+        if(!this.isDragging) return;
+        const delta = y - this.startY;
+        this.track.style.transform = `translateY(${this.currentY + delta}px)`;
+    }
+
+    end() {
+        if(!this.isDragging) return;
+        this.isDragging = false;
+        const matrix = new WebKitCSSMatrix(window.getComputedStyle(this.track).transform);
+        const moved = matrix.m42; 
+        let idx = Math.round((75 - moved - 25)/50); // 75 is center offset
+        if(idx < 0) idx = 0; if(idx > this.max) idx = this.max;
+        this.set(idx);
+    }
+
+    set(val) {
+        this.val = val;
+        this.currentY = 75 - (val * 50) - 25;
+        this.track.style.transition = 'transform 0.2s ease-out';
+        this.track.style.transform = `translateY(${this.currentY}px)`;
+        Array.from(this.track.children).forEach((c,i) => {
+            c.classList.toggle('selected', i===val);
+        });
+    }
+}
+
+/* --- DATABASE --- */
+const db = {
+    handle: null,
+    init: (cb) => {
+        const req = indexedDB.open("NeonCircuitDB", 1);
+        req.onupgradeneeded = e => {
+            const d = e.target.result;
+            if(!d.objectStoreNames.contains("circuits")) d.createObjectStore("circuits", { keyPath: "id" });
+        };
+        req.onsuccess = e => { db.handle = e.target.result; cb(); };
+    },
+    getAll: (cb) => {
+        const tx = db.handle.transaction("circuits","readonly");
+        const req = tx.objectStore("circuits").getAll();
+        req.onsuccess = e => cb(e.target.result);
+    },
+    save: (data, cb) => {
+        const tx = db.handle.transaction("circuits","readwrite");
+        tx.objectStore("circuits").put(data);
+        tx.oncomplete = cb;
+    },
+    delete: (id, cb) => {
+        const tx = db.handle.transaction("circuits","readwrite");
+        tx.objectStore("circuits").delete(id);
+        tx.oncomplete = cb;
+    }
+};
+
+/* --- APP LOGIC --- */
+const app = {
+    currentCircuit: null,
+    pickers: {},
+    
+    init: () => {
+        db.init(() => app.loadLibrary());
+        app.pickers.m = new ScrollWheel('track-m', 90, 0);
+        app.pickers.s = new ScrollWheel('track-s', 59, 30);
+    },
+    
+    nav: (viewId) => {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        
+        // Navbar logic
+        const navs = document.querySelectorAll('.nav-btn');
+        navs.forEach(n => n.classList.remove('active'));
+        if(viewId === 'view-library') navs[0].classList.add('active');
+        if(viewId === 'view-editor') navs[1].classList.add('active');
+        if(viewId === 'view-timer') navs[2].classList.add('active');
+        
+        document.getElementById('fab-add').style.display = viewId === 'view-library' ? 'flex' : 'none';
+    },
+
+    loadLibrary: () => {
+        db.getAll(circuits => {
+            const list = document.getElementById('circuit-list');
+            list.innerHTML = '';
+            if(circuits.length === 0) document.getElementById('empty-msg').style.display = 'block';
+            else document.getElementById('empty-msg').style.display = 'none';
+
+            circuits.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                // Calculate total time
+                let totalSec = c.steps.reduce((acc, s) => acc + s.duration, 0);
+                let tm = Math.floor(totalSec/60);
+                
+                div.innerHTML = `
+                    <div onclick="timer.load(${c.id})" style="flex:1">
+                        <h3>${c.name}</h3>
+                        <p>${c.steps.length} Steps | ~${tm} Mins</p>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button style="padding:5px 10px;" onclick="editor.edit(${c.id})">✎</button>
+                        <button class="btn-pink" style="padding:5px 10px;" onclick="editor.del(${c.id})">✕</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        });
+    }
+};
+
+/* --- EDITOR MODULE --- */
+const editor = {
+    draft: { id: null, name: "", steps: [] },
+    tempStepType: 'work',
+
+    newCircuit: () => {
+        editor.draft = { id: Date.now(), name: "", steps: [] };
+        editor.render();
+        app.nav('view-editor');
+    },
+    
+    edit: (id) => {
+        db.getAll(list => {
+            const c = list.find(x => x.id === id);
+            if(c) {
+                editor.draft = JSON.parse(JSON.stringify(c)); // deep copy
+                editor.render();
+                app.nav('view-editor');
+            }
+        });
+    },
+
+    del: (id) => {
+        if(confirm("Delete Circuit?")) db.delete(id, () => app.loadLibrary());
+    },
+
+    render: () => {
+        document.getElementById('edit-name').value = editor.draft.name;
+        const container = document.getElementById('editor-steps');
+        container.innerHTML = '';
+        
+        editor.draft.steps.forEach((s, i) => {
+            const div = document.createElement('div');
+            div.className = `step-item type-${s.type}`;
+            let m = Math.floor(s.duration/60).toString().padStart(2,'0');
+            let sec = (s.duration%60).toString().padStart(2,'0');
+            
+            div.innerHTML = `
+                <div style="width:10px; height:10px; border-radius:50%; background:var(--${s.type==='work'?'cyan':'pink'})"></div>
+                <div class="step-name">${s.name}</div>
+                <div class="step-time">${m}:${sec}</div>
+                <button style="border:none; color:var(--pink); margin-left:10px;" onclick="editor.removeStep(${i})">✕</button>
+            `;
+            container.appendChild(div);
+        });
+    },
+
+    openStepCreator: (type) => {
+        editor.tempStepType = type;
+        document.getElementById('step-creator-title').innerText = type === 'work' ? "ADD WORKOUT" : "ADD BREAK";
+        document.getElementById('step-name').value = type === 'work' ? "Exercise" : "Rest";
+        document.getElementById('step-name').style.color = type === 'work' ? "var(--cyan)" : "var(--pink)";
+        app.pickers.m.set(0);
+        app.pickers.s.set(type === 'work' ? 30 : 10);
+        app.nav('view-step-creator');
+    },
+
+    confirmStep: () => {
+        const m = app.pickers.m.val;
+        const s = app.pickers.s.val;
+        const total = (m*60) + s;
+        if(total === 0) return alert("Duration cannot be 0");
+
+        editor.draft.steps.push({
+            type: editor.tempStepType,
+            name: document.getElementById('step-name').value || "Step",
+            duration: total
+        });
+        editor.render();
+        app.nav('view-editor');
+    },
+
+    removeStep: (idx) => {
+        editor.draft.steps.splice(idx, 1);
+        editor.render();
+    },
+    
+    clearSteps: () => {
+        editor.draft.steps = [];
+        editor.render();
+    },
+
+    saveCircuit: () => {
+        const name = document.getElementById('edit-name').value || "Untitled Circuit";
+        if(editor.draft.steps.length === 0) return alert("Add at least one step.");
+        
+        editor.draft.name = name;
+        db.save(editor.draft, () => {
+            app.loadLibrary();
+            app.nav('view-library');
+        });
+    }
+};
+
+/* --- TIMER MODULE --- */
+const timer = {
+    interval: null,
+    circuit: null,
+    stepIdx: 0,
+    timeRem: 0,
+    isRunning: false,
+
+    load: (id) => {
+        db.getAll(list => {
+            timer.circuit = list.find(x => x.id === id);
+            timer.reset();
+            app.nav('view-timer');
+        });
+    },
+
+    reset: () => {
+        timer.pause();
+        timer.stepIdx = 0;
+        timer.setupStep();
+        document.getElementById('btn-toggle').innerText = "START";
+    },
+
+    setupStep: () => {
+        if(!timer.circuit) return;
+        
+        // Check End
+        if(timer.stepIdx >= timer.circuit.steps.length) {
+            if(document.getElementById('loop-circuit').checked) {
+                timer.stepIdx = 0; // Loop
+            } else {
+                timer.finish();
+                return;
+            }
+        }
+
+        const step = timer.circuit.steps[timer.stepIdx];
+        const nextStep = timer.circuit.steps[timer.stepIdx + 1];
+        
+        timer.timeRem = step.duration;
+        
+        // UI Updates
+        const lbl = document.getElementById('t-label');
+        lbl.innerText = step.name;
+        lbl.style.color = step.type === 'work' ? "var(--cyan)" : "var(--pink)";
+        
+        document.getElementById('t-time').innerText = timer.fmt(timer.timeRem);
+        document.getElementById('t-next').innerText = nextStep ? `NEXT: ${nextStep.name}` : "NEXT: FINISH";
+        
+        // Reset Progress bar
+        document.getElementById('t-bar').style.transition = 'none';
+        document.getElementById('t-bar').style.width = '100%';
+        document.getElementById('t-bar').style.backgroundColor = step.type === 'work' ? "var(--cyan)" : "var(--pink)";
+    },
+
+    toggle: () => {
+        if(timer.isRunning) timer.pause();
+        else timer.start();
+    },
+
+    start: () => {
+        if(!timer.circuit) return;
+        audio.init(); // User interaction required first
+        timer.isRunning = true;
+        document.getElementById('btn-toggle').innerText = "PAUSE";
+        audio.beep('high');
+
+        timer.interval = setInterval(() => {
+            timer.timeRem--;
+            document.getElementById('t-time').innerText = timer.fmt(timer.timeRem);
+            
+            // Progress Bar
+            const step = timer.circuit.steps[timer.stepIdx];
+            const pct = (timer.timeRem / step.duration) * 100;
+            document.getElementById('t-bar').style.transition = 'width 1s linear';
+            document.getElementById('t-bar').style.width = pct + '%';
+
+            // Audio Cues
+            if(timer.timeRem <= 3 && timer.timeRem > 0) audio.beep('low');
+            if(timer.timeRem === 0) {
+                audio.beep('high');
+                timer.stepIdx++;
+                timer.setupStep();
+            }
+        }, 1000);
+    },
+
+    pause: () => {
+        timer.isRunning = false;
+        clearInterval(timer.interval);
+        document.getElementById('btn-toggle').innerText = "RESUME";
+    },
+
+    stop: () => {
+        timer.pause();
+        app.nav('view-library');
+    },
+
+    finish: () => {
+        timer.pause();
+        document.getElementById('t-label').innerText = "COMPLETE";
+        document.getElementById('t-time').innerText = "DONE";
+        audio.beep('end');
+        document.getElementById('btn-toggle').innerText = "RESTART";
+    },
+
+    fmt: (s) => {
+        return Math.floor(s/60).toString().padStart(2,'0') + ":" + (s%60).toString().padStart(2,'0');
+    }
+};
+
+// Bootstrap
+window.onload = app.init;
+</script>
 </body>
 </html>
