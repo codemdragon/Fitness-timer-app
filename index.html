@@ -3,577 +3,484 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEON CIRCUIT</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#050505">
-
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
-
+    <title>Aether Timer | Futuristic Intervals</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --bg: #050505;
-            --surface: rgba(20, 20, 25, 0.9);
-            --border: 1px solid rgba(0, 243, 255, 0.2);
-            --cyan: #00f3ff;
-            --pink: #ff0055;
-            --text: #e0e0e0;
-            --muted: #666;
-            --font-main: 'Rajdhani', sans-serif;
-            --font-mono: 'Roboto Mono', monospace;
-            --picker-h: 50px; 
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-magenta: #ff00ff;
+            --dark-bg: #0a0b1e;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
 
         body {
-            margin: 0; background: var(--bg); color: var(--text);
-            font-family: var(--font-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden;
-            background-image: linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
-            background-size: 30px 30px;
+            background-color: var(--dark-bg);
+            color: #e0e0e0;
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+            touch-action: manipulation;
         }
 
-        /* --- UI COMPONENTS --- */
-        header { padding: 15px; text-align: center; border-bottom: var(--border); background: rgba(5,5,5,0.95); backdrop-filter: blur(10px); z-index: 10; }
-        h1 { margin: 0; color: var(--cyan); text-transform: uppercase; letter-spacing: 3px; text-shadow: 0 0 10px rgba(0,243,255,0.4); font-size: 1.4rem; }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
 
-        main { flex: 1; overflow-y: auto; position: relative; scrollbar-width: none; }
-        .view { display: none; padding: 20px; padding-bottom: 100px; animation: fadeUp 0.3s ease; }
-        .view.active { display: block; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Buttons */
-        button {
-            background: transparent; border: 1px solid var(--cyan); color: var(--cyan);
-            padding: 12px; font-family: var(--font-main); font-weight: 700; text-transform: uppercase;
-            letter-spacing: 1px; cursor: pointer; transition: 0.2s;
-            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-        }
-        button:active { transform: scale(0.98); background: rgba(0,243,255,0.1); }
-        .btn-fill { background: rgba(0,243,255,0.15); box-shadow: 0 0 10px rgba(0,243,255,0.1); }
-        .btn-pink { border-color: var(--pink); color: var(--pink); background: rgba(255,0,85,0.1); }
-        .btn-fab { 
-            position: fixed; bottom: 85px; right: 20px; width: 60px; height: 60px; 
-            border-radius: 50%; clip-path: none; background: var(--cyan); color: #000; font-size: 2rem;
-            display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px var(--cyan); z-index: 50;
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
         }
 
-        /* Lists & Cards */
-        .card { 
-            background: var(--surface); border: var(--border); padding: 15px; margin-bottom: 10px; 
-            display: flex; justify-content: space-between; align-items: center; border-radius: 4px;
-        }
-        .card h3 { margin: 0; font-size: 1.1rem; color: #fff; }
-        .card p { margin: 5px 0 0; color: var(--muted); font-size: 0.8rem; font-family: var(--font-mono); }
+        .neon-text-cyan { color: var(--neon-cyan); text-shadow: 0 0 8px rgba(0, 243, 255, 0.5); }
+        .neon-bg-cyan { background-color: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan); }
         
-        /* Step List in Editor */
-        .step-item {
-            display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.02);
-            border-left: 2px solid var(--muted); margin-bottom: 5px;
-        }
-        .step-item.type-work { border-color: var(--cyan); }
-        .step-item.type-break { border-color: var(--pink); }
-        .step-name { flex: 1; margin-left: 10px; font-weight: bold; }
-        .step-time { font-family: var(--font-mono); color: var(--text); }
-
-        /* --- SCROLL PICKER --- */
-        .picker-wrapper { display: flex; gap: 10px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: var(--border); margin: 20px 0; }
-        .picker-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
-        .picker-head { font-size: 0.7rem; color: var(--muted); margin-bottom: 5px; }
-        .picker-view {
-            height: 150px; width: 100%; overflow: hidden; position: relative; background: #000;
+        .picker-container {
+            height: 150px;
+            overflow-y: scroll;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
             mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
             -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
         }
-        .picker-track { transition: transform 0.1s; will-change: transform; }
-        .picker-cell { 
-            height: var(--picker-h); display: flex; align-items: center; justify-content: center; 
-            font-size: 1.5rem; color: #444; font-family: var(--font-mono); 
+        .picker-container::-webkit-scrollbar { display: none; }
+        .picker-item {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.2s;
+            opacity: 0.4;
         }
-        .picker-cell.selected { color: var(--cyan); font-weight: bold; font-size: 1.8rem; text-shadow: 0 0 10px var(--cyan); }
-        .picker-highlight { 
-            position: absolute; top: 50%; width: 100%; height: 1px; background: var(--cyan); opacity: 0.3; transform: translateY(-50%); pointer-events: none;
+        .picker-item.active {
+            opacity: 1;
+            color: var(--neon-cyan);
+            font-weight: bold;
+            transform: scale(1.2);
         }
 
-        /* --- TIMER --- */
-        .timer-display { font-size: 6rem; text-align: center; font-family: var(--font-mono); font-weight: 700; margin: 20px 0; text-shadow: 0 0 20px rgba(255,255,255,0.1); }
-        .timer-label { text-align: center; color: var(--cyan); font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
-        .timer-next { text-align: center; color: var(--muted); font-size: 0.9rem; margin-top: 10px; font-family: var(--font-mono); }
-        .progress-bar { height: 4px; background: #222; width: 100%; margin-bottom: 20px; }
-        .progress-fill { height: 100%; background: var(--cyan); width: 100%; box-shadow: 0 0 10px var(--cyan); transition: width 1s linear; }
-
-        /* --- NAV --- */
-        nav { 
-            position: fixed; bottom: 0; width: 100%; height: 60px; background: rgba(5,5,5,0.95); 
-            border-top: var(--border); display: flex; justify-content: space-around; backdrop-filter: blur(10px); z-index: 100;
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
         }
-        .nav-btn { flex: 1; background: none; border: none; color: var(--muted); clip-path: none; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; }
-        .nav-btn span { font-size: 1.4rem; margin-bottom: 2px; }
-        .nav-btn.active { color: var(--cyan); }
+        .timer-active { animation: pulse 2s infinite ease-in-out; }
 
-        /* Utils */
-        .hidden { display: none !important; }
-        input[type="text"] { width: 100%; padding: 12px; background: #111; border: 1px solid #333; color: white; font-family: var(--font-mono); outline: none; }
-        input[type="text"]:focus { border-color: var(--cyan); }
+        .page {
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+        .page-hidden {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
-<body>
+<body class="h-screen flex flex-col items-center justify-center p-4">
 
-    <header>
-        <h1 id="header-title">NEON CIRCUIT</h1>
-    </header>
+    <div class="relative w-full max-w-md h-[90vh] glass-panel overflow-hidden">
+        
+        <header class="p-6 flex justify-between items-center border-b border-white/10">
+            <h1 class="font-orbitron text-xl neon-text-cyan tracking-widest">AETHER.IO</h1>
+            <button onclick="navigate('home')" id="home-btn" class="hidden text-white/50 hover:text-white">
+                <i class="fas fa-home text-lg"></i>
+            </button>
+        </header>
 
-    <main>
-        <section id="view-library" class="view active">
-            <div id="circuit-list"></div>
-            <div style="text-align:center; color:var(--muted); margin-top:50px; display:none;" id="empty-msg">NO CIRCUITS FOUND</div>
-        </section>
-
-        <section id="view-editor" class="view">
-            <input type="text" id="edit-name" placeholder="CIRCUIT NAME (e.g. TABATA)">
-            
-            <div style="display:flex; justify-content:space-between; margin-top:20px; align-items:center;">
-                <span style="color:var(--muted); font-size:0.8rem;">SEQUENCE</span>
-                <button onclick="editor.clearSteps()" style="font-size:0.7rem; padding:5px 10px; border-color:var(--pink); color:var(--pink);">CLEAR</button>
+        <!-- HOME SCREEN -->
+        <div id="page-home" class="page p-6 flex flex-col space-y-6 overflow-y-auto pt-24">
+            <div class="text-center">
+                <h2 class="text-3xl font-bold mb-2 text-white">My Circuits</h2>
+                <p class="text-white/40">Persistent Interval Storage</p>
             </div>
-            
-            <div id="editor-steps" style="margin-top:10px; min-height: 50px;"></div>
+            <div id="circuit-list" class="space-y-4"></div>
+            <button onclick="createNewCircuit()" class="w-full py-4 rounded-2xl border-2 border-dashed border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition">
+                <i class="fas fa-plus mr-2"></i> Create New Circuit
+            </button>
+        </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
-                <button onclick="editor.openStepCreator('work')">+ WORKOUT</button>
-                <button onclick="editor.openStepCreator('break')" class="btn-pink">+ BREAK</button>
+        <!-- EDITOR SCREEN -->
+        <div id="page-editor" class="page p-6 flex flex-col space-y-4 overflow-y-auto pt-24 page-hidden">
+            <div class="flex items-center space-x-3 mb-4">
+                <input id="circuit-name-input" type="text" placeholder="Circuit Name" class="bg-transparent text-2xl font-bold border-b border-white/20 focus:border-cyan-400 outline-none w-full text-white">
             </div>
+            <div id="task-list" class="space-y-3 pb-32"></div>
+            <div class="fixed bottom-10 left-0 w-full px-10 flex space-x-3">
+                <button onclick="showTaskModal('workout')" class="flex-1 py-3 neon-bg-cyan text-black font-bold rounded-xl text-sm">+ WORKOUT</button>
+                <button onclick="showTaskModal('break')" class="flex-1 py-3 bg-white/10 text-white font-bold rounded-xl text-sm border border-white/20">+ BREAK</button>
+                <button onclick="saveCircuit()" class="w-12 h-12 flex items-center justify-center bg-green-500 text-black rounded-xl shadow-lg">
+                    <i class="fas fa-save"></i>
+                </button>
+            </div>
+        </div>
 
-            <button class="btn-fill" style="width:100%; margin-top:30px;" onclick="editor.saveCircuit()">SAVE CIRCUIT</button>
-            <button style="width:100%; margin-top:10px; border:none; color:var(--muted);" onclick="app.nav('view-library')">CANCEL</button>
-        </section>
-
-        <section id="view-step-creator" class="view">
-            <h2 id="step-creator-title" style="color:var(--cyan); text-align:center;">CONFIGURE STEP</h2>
-            <input type="text" id="step-name" placeholder="ACTIVITY NAME">
-            
-            <div class="picker-wrapper">
-                <div class="picker-col">
-                    <div class="picker-head">MIN</div>
-                    <div class="picker-view"><div class="picker-track" id="track-m"></div><div class="picker-highlight"></div></div>
+        <!-- TIMER SCREEN -->
+        <div id="page-timer" class="page p-6 flex flex-col items-center justify-center pt-10 page-hidden">
+            <div class="text-center mb-8">
+                <h2 id="current-circuit-title" class="text-white/40 tracking-widest mb-1 uppercase">CIRCUIT</h2>
+                <h1 id="current-task-name" class="text-4xl font-orbitron font-bold neon-text-cyan uppercase">READY</h1>
+            </div>
+            <div class="relative w-64 h-64 flex items-center justify-center">
+                <svg class="w-full h-full -rotate-90">
+                    <circle cx="128" cy="128" r="120" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="transparent" />
+                    <circle id="timer-progress" cx="128" cy="128" r="120" stroke="var(--neon-cyan)" stroke-width="8" fill="transparent" stroke-dasharray="753.98" stroke-dashoffset="0" stroke-linecap="round" />
+                </svg>
+                <div class="absolute flex flex-col items-center">
+                    <span id="timer-display" class="text-6xl font-orbitron font-bold text-white">00:00</span>
+                    <span id="next-task-info" class="text-xs text-white/30 mt-2 uppercase">Next: Finish</span>
                 </div>
-                <div class="picker-col">
-                    <div class="picker-head">SEC</div>
-                    <div class="picker-view"><div class="picker-track" id="track-s"></div><div class="picker-highlight"></div></div>
+            </div>
+            <div class="flex space-x-6 mt-12">
+                <button id="timer-ctrl-btn" onclick="toggleTimer()" class="w-20 h-20 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-2xl shadow-[0_0_20px_rgba(0,243,255,0.2)]">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button onclick="stopTimer()" class="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-2xl border border-white/10">
+                    <i class="fas fa-stop"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TASK MODAL -->
+    <div id="task-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-end justify-center z-50 opacity-0 pointer-events-none transition-opacity">
+        <div class="w-full max-w-md glass-panel p-8 rounded-t-[40px] transform translate-y-full transition-transform duration-300">
+            <h3 id="modal-title" class="text-2xl font-bold mb-6 text-center text-white">Add Stage</h3>
+            <input id="modal-task-name" type="text" placeholder="Task Name" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl mb-6 outline-none focus:border-cyan-400 text-white">
+            <div class="flex items-center justify-around mb-8 relative">
+                <div class="absolute h-[50px] w-full border-y border-cyan-400/30 pointer-events-none"></div>
+                <div class="flex flex-col items-center">
+                    <span class="text-[10px] uppercase text-white/40 mb-1">Hours</span>
+                    <div id="picker-h" class="picker-container w-16" onscroll="handlePickerScroll(this)"></div>
+                </div>
+                <div class="text-2xl text-cyan-400">:</div>
+                <div class="flex flex-col items-center">
+                    <span class="text-[10px] uppercase text-white/40 mb-1">Min</span>
+                    <div id="picker-m" class="picker-container w-16" onscroll="handlePickerScroll(this)"></div>
+                </div>
+                <div class="text-2xl text-cyan-400">:</div>
+                <div class="flex flex-col items-center">
+                    <span class="text-[10px] uppercase text-white/40 mb-1">Sec</span>
+                    <div id="picker-s" class="picker-container w-16" onscroll="handlePickerScroll(this)"></div>
                 </div>
             </div>
-
-            <button class="btn-fill" style="width:100%" onclick="editor.confirmStep()">ADD TO SEQUENCE</button>
-            <button style="width:100%; margin-top:10px; border:none; color:var(--muted);" onclick="app.nav('view-editor')">BACK</button>
-        </section>
-
-        <section id="view-timer" class="view">
-            <div class="progress-bar"><div class="progress-fill" id="t-bar"></div></div>
-            
-            <div id="t-label" class="timer-label">READY</div>
-            <div id="t-time" class="timer-display">00:00</div>
-            <div id="t-next" class="timer-next">NEXT: --</div>
-
-            <div style="display:flex; gap:10px; margin-top:40px;">
-                <button id="btn-toggle" class="btn-fill" style="flex:1" onclick="timer.toggle()">START</button>
-                <button class="btn-pink" style="flex:1" onclick="timer.stop()">EXIT</button>
+            <div class="flex space-x-4">
+                <button onclick="closeTaskModal()" class="flex-1 py-4 rounded-2xl bg-white/5 font-bold text-white">CANCEL</button>
+                <button onclick="confirmTaskAction()" class="flex-1 py-4 rounded-2xl neon-bg-cyan text-black font-bold">CONFIRM</button>
             </div>
+        </div>
+    </div>
 
-            <div style="text-align:center; margin-top:20px;">
-                <input type="checkbox" id="loop-circuit"> <span style="color:var(--muted); font-size:0.9rem;">LOOP CIRCUIT</span>
-            </div>
-        </section>
-    </main>
+    <script>
+        let db;
+        let circuits = [];
+        let currentCircuit = null;
+        let activeTimer = null;
+        let timerSeconds = 0;
+        let totalTaskSeconds = 0;
+        let isPaused = true;
+        let currentTaskIdx = 0;
+        let editingTaskType = 'workout';
+        let currentlyEditingTaskIdx = null;
 
-    <button id="fab-add" class="btn-fab" onclick="editor.newCircuit()">+</button>
-
-    <nav id="navbar">
-        <button class="nav-btn active" onclick="app.nav('view-library')"><span>☰</span>LIBRARY</button>
-        <button class="nav-btn" onclick="app.nav('view-editor')"><span>✎</span>EDITOR</button>
-        <button class="nav-btn" onclick="app.nav('view-timer')"><span>⏱</span>ACTIVE</button>
-    </nav>
-
-<script>
-/* --- AUDIO ENGINE --- */
-const audio = {
-    ctx: null,
-    init: () => {
-        if(!audio.ctx) audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    },
-    beep: (type) => {
-        if(!audio.ctx) audio.init();
-        const osc = audio.ctx.createOscillator();
-        const gain = audio.ctx.createGain();
-        osc.connect(gain);
-        gain.connect(audio.ctx.destination);
-        
-        // Configs
-        const now = audio.ctx.currentTime;
-        if(type === 'high') { osc.frequency.value = 880; gain.gain.value = 0.1; osc.start(now); osc.stop(now + 0.1); }
-        else if(type === 'low') { osc.frequency.value = 440; gain.gain.value = 0.1; osc.start(now); osc.stop(now + 0.3); }
-        else if(type === 'end') { 
-            osc.frequency.setValueAtTime(880, now);
-            osc.frequency.exponentialRampToValueAtTime(110, now + 0.5);
-            gain.gain.value = 0.2; osc.start(now); osc.stop(now + 0.5);
-        }
-    }
-};
-
-/* --- SCROLL PICKER LOGIC --- */
-class ScrollWheel {
-    constructor(elementId, max, defaultVal = 0) {
-        this.track = document.getElementById(elementId);
-        this.max = max;
-        this.val = defaultVal;
-        this.itemH = 50; 
-        this.isDragging = false;
-        this.startY = 0;
-        this.currentY = 0;
-        
-        // Render
-        this.track.innerHTML = '';
-        for(let i=0; i<=max; i++){
-            let d = document.createElement('div');
-            d.className = 'picker-cell';
-            d.innerText = i.toString().padStart(2,'0');
-            this.track.appendChild(d);
-        }
-        
-        // Events
-        const wrapper = this.track.parentElement;
-        wrapper.addEventListener('touchstart', e => this.start(e.touches[0].clientY));
-        wrapper.addEventListener('touchmove', e => { e.preventDefault(); this.move(e.touches[0].clientY); });
-        wrapper.addEventListener('touchend', () => this.end());
-        
-        wrapper.addEventListener('mousedown', e => this.start(e.clientY));
-        document.addEventListener('mousemove', e => this.move(e.clientY));
-        document.addEventListener('mouseup', () => this.end());
-
-        this.set(defaultVal);
-    }
-
-    start(y) { this.isDragging = true; this.startY = y; this.track.style.transition = 'none'; }
-    
-    move(y) {
-        if(!this.isDragging) return;
-        const delta = y - this.startY;
-        this.track.style.transform = `translateY(${this.currentY + delta}px)`;
-    }
-
-    end() {
-        if(!this.isDragging) return;
-        this.isDragging = false;
-        const matrix = new WebKitCSSMatrix(window.getComputedStyle(this.track).transform);
-        const moved = matrix.m42; 
-        let idx = Math.round((75 - moved - 25)/50); // 75 is center offset
-        if(idx < 0) idx = 0; if(idx > this.max) idx = this.max;
-        this.set(idx);
-    }
-
-    set(val) {
-        this.val = val;
-        this.currentY = 75 - (val * 50) - 25;
-        this.track.style.transition = 'transform 0.2s ease-out';
-        this.track.style.transform = `translateY(${this.currentY}px)`;
-        Array.from(this.track.children).forEach((c,i) => {
-            c.classList.toggle('selected', i===val);
-        });
-    }
-}
-
-/* --- DATABASE --- */
-const db = {
-    handle: null,
-    init: (cb) => {
-        const req = indexedDB.open("NeonCircuitDB", 1);
-        req.onupgradeneeded = e => {
-            const d = e.target.result;
-            if(!d.objectStoreNames.contains("circuits")) d.createObjectStore("circuits", { keyPath: "id" });
+        // IndexedDB Logic
+        const initDB = () => {
+            const request = indexedDB.open('AetherIntervalDB', 1);
+            request.onupgradeneeded = (e) => {
+                db = e.target.result;
+                if (!db.objectStoreNames.contains('circuits')) {
+                    db.createObjectStore('circuits', { keyPath: 'id' });
+                }
+            };
+            request.onsuccess = (e) => {
+                db = e.target.result;
+                loadState();
+            };
+            request.onerror = (e) => console.error("Database error", e);
         };
-        req.onsuccess = e => { db.handle = e.target.result; cb(); };
-    },
-    getAll: (cb) => {
-        const tx = db.handle.transaction("circuits","readonly");
-        const req = tx.objectStore("circuits").getAll();
-        req.onsuccess = e => cb(e.target.result);
-    },
-    save: (data, cb) => {
-        const tx = db.handle.transaction("circuits","readwrite");
-        tx.objectStore("circuits").put(data);
-        tx.oncomplete = cb;
-    },
-    delete: (id, cb) => {
-        const tx = db.handle.transaction("circuits","readwrite");
-        tx.objectStore("circuits").delete(id);
-        tx.oncomplete = cb;
-    }
-};
 
-/* --- APP LOGIC --- */
-const app = {
-    currentCircuit: null,
-    pickers: {},
-    
-    init: () => {
-        db.init(() => app.loadLibrary());
-        app.pickers.m = new ScrollWheel('track-m', 90, 0);
-        app.pickers.s = new ScrollWheel('track-s', 59, 30);
-    },
-    
-    nav: (viewId) => {
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        document.getElementById(viewId).classList.add('active');
-        
-        // Navbar logic
-        const navs = document.querySelectorAll('.nav-btn');
-        navs.forEach(n => n.classList.remove('active'));
-        if(viewId === 'view-library') navs[0].classList.add('active');
-        if(viewId === 'view-editor') navs[1].classList.add('active');
-        if(viewId === 'view-timer') navs[2].classList.add('active');
-        
-        document.getElementById('fab-add').style.display = viewId === 'view-library' ? 'flex' : 'none';
-    },
+        const loadState = () => {
+            const tx = db.transaction('circuits', 'readonly');
+            const store = tx.objectStore('circuits');
+            const request = store.getAll();
+            request.onsuccess = () => {
+                circuits = request.result || [];
+                renderCircuitList();
+            };
+        };
 
-    loadLibrary: () => {
-        db.getAll(circuits => {
+        const saveToDB = (circuit) => {
+            if (!db) return;
+            const tx = db.transaction('circuits', 'readwrite');
+            tx.objectStore('circuits').put(circuit);
+        };
+
+        const deleteFromDB = (id) => {
+            if (!db) return;
+            const tx = db.transaction('circuits', 'readwrite');
+            tx.objectStore('circuits').delete(id);
+            circuits = circuits.filter(c => c.id !== id);
+            renderCircuitList();
+        };
+
+        // UI & Navigation
+        const navigate = (pageId) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('page-hidden'));
+            document.getElementById(`page-${pageId}`).classList.remove('page-hidden');
+            document.getElementById('home-btn').style.display = pageId === 'home' ? 'none' : 'block';
+            if (pageId === 'home') stopTimer();
+        };
+
+        const createNewCircuit = () => {
+            currentCircuit = { id: Date.now().toString(), name: '', tasks: [] };
+            document.getElementById('circuit-name-input').value = '';
+            renderTasks();
+            navigate('editor');
+        };
+
+        const editCircuit = (id) => {
+            currentCircuit = JSON.parse(JSON.stringify(circuits.find(c => c.id === id)));
+            document.getElementById('circuit-name-input').value = currentCircuit.name;
+            renderTasks();
+            navigate('editor');
+        };
+
+        const saveCircuit = () => {
+            currentCircuit.name = document.getElementById('circuit-name-input').value || 'Untitled Circuit';
+            const idx = circuits.findIndex(c => c.id === currentCircuit.id);
+            if (idx > -1) circuits[idx] = currentCircuit;
+            else circuits.push(currentCircuit);
+            saveToDB(currentCircuit);
+            renderCircuitList();
+            navigate('home');
+        };
+
+        const renderCircuitList = () => {
             const list = document.getElementById('circuit-list');
             list.innerHTML = '';
-            if(circuits.length === 0) document.getElementById('empty-msg').style.display = 'block';
-            else document.getElementById('empty-msg').style.display = 'none';
-
             circuits.forEach(c => {
-                const div = document.createElement('div');
-                div.className = 'card';
-                // Calculate total time
-                let totalSec = c.steps.reduce((acc, s) => acc + s.duration, 0);
-                let tm = Math.floor(totalSec/60);
-                
-                div.innerHTML = `
-                    <div onclick="timer.load(${c.id})" style="flex:1">
-                        <h3>${c.name}</h3>
-                        <p>${c.steps.length} Steps | ~${tm} Mins</p>
+                const card = document.createElement('div');
+                card.className = 'glass-panel p-5 flex justify-between items-center group cursor-pointer active:scale-95 transition';
+                card.onclick = () => startCircuit(c.id);
+                card.innerHTML = `
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold text-white">${c.name}</h3>
+                        <p class="text-white/30 text-sm">${c.tasks.length} Stages • ${formatTime(c.tasks.reduce((a, b) => a + b.duration, 0))}</p>
                     </div>
-                    <div style="display:flex; gap:10px;">
-                        <button style="padding:5px 10px;" onclick="editor.edit(${c.id})">✎</button>
-                        <button class="btn-pink" style="padding:5px 10px;" onclick="editor.del(${c.id})">✕</button>
+                    <div class="flex space-x-2">
+                        <button onclick="event.stopPropagation(); editCircuit('${c.id}')" class="text-white/40 hover:text-cyan-400 p-2"><i class="fas fa-edit"></i></button>
+                        <button onclick="event.stopPropagation(); deleteFromDB('${c.id}')" class="text-white/40 hover:text-red-400 p-2"><i class="fas fa-trash-alt"></i></button>
                     </div>
                 `;
-                list.appendChild(div);
+                list.appendChild(card);
             });
-        });
-    }
-};
+        };
 
-/* --- EDITOR MODULE --- */
-const editor = {
-    draft: { id: null, name: "", steps: [] },
-    tempStepType: 'work',
+        // Task Management
+        const showTaskModal = (type, taskIdx = null) => {
+            editingTaskType = type;
+            currentlyEditingTaskIdx = taskIdx;
+            const isEdit = taskIdx !== null;
+            const task = isEdit ? currentCircuit.tasks[taskIdx] : null;
 
-    newCircuit: () => {
-        editor.draft = { id: Date.now(), name: "", steps: [] };
-        editor.render();
-        app.nav('view-editor');
-    },
-    
-    edit: (id) => {
-        db.getAll(list => {
-            const c = list.find(x => x.id === id);
-            if(c) {
-                editor.draft = JSON.parse(JSON.stringify(c)); // deep copy
-                editor.render();
-                app.nav('view-editor');
-            }
-        });
-    },
-
-    del: (id) => {
-        if(confirm("Delete Circuit?")) db.delete(id, () => app.loadLibrary());
-    },
-
-    render: () => {
-        document.getElementById('edit-name').value = editor.draft.name;
-        const container = document.getElementById('editor-steps');
-        container.innerHTML = '';
-        
-        editor.draft.steps.forEach((s, i) => {
-            const div = document.createElement('div');
-            div.className = `step-item type-${s.type}`;
-            let m = Math.floor(s.duration/60).toString().padStart(2,'0');
-            let sec = (s.duration%60).toString().padStart(2,'0');
+            document.getElementById('modal-title').innerText = isEdit ? `Edit ${type}` : `Add ${type}`;
+            document.getElementById('modal-task-name').value = isEdit ? task.name : '';
             
-            div.innerHTML = `
-                <div style="width:10px; height:10px; border-radius:50%; background:var(--${s.type==='work'?'cyan':'pink'})"></div>
-                <div class="step-name">${s.name}</div>
-                <div class="step-time">${m}:${sec}</div>
-                <button style="border:none; color:var(--pink); margin-left:10px;" onclick="editor.removeStep(${i})">✕</button>
-            `;
-            container.appendChild(div);
-        });
-    },
-
-    openStepCreator: (type) => {
-        editor.tempStepType = type;
-        document.getElementById('step-creator-title').innerText = type === 'work' ? "ADD WORKOUT" : "ADD BREAK";
-        document.getElementById('step-name').value = type === 'work' ? "Exercise" : "Rest";
-        document.getElementById('step-name').style.color = type === 'work' ? "var(--cyan)" : "var(--pink)";
-        app.pickers.m.set(0);
-        app.pickers.s.set(type === 'work' ? 30 : 10);
-        app.nav('view-step-creator');
-    },
-
-    confirmStep: () => {
-        const m = app.pickers.m.val;
-        const s = app.pickers.s.val;
-        const total = (m*60) + s;
-        if(total === 0) return alert("Duration cannot be 0");
-
-        editor.draft.steps.push({
-            type: editor.tempStepType,
-            name: document.getElementById('step-name').value || "Step",
-            duration: total
-        });
-        editor.render();
-        app.nav('view-editor');
-    },
-
-    removeStep: (idx) => {
-        editor.draft.steps.splice(idx, 1);
-        editor.render();
-    },
-    
-    clearSteps: () => {
-        editor.draft.steps = [];
-        editor.render();
-    },
-
-    saveCircuit: () => {
-        const name = document.getElementById('edit-name').value || "Untitled Circuit";
-        if(editor.draft.steps.length === 0) return alert("Add at least one step.");
-        
-        editor.draft.name = name;
-        db.save(editor.draft, () => {
-            app.loadLibrary();
-            app.nav('view-library');
-        });
-    }
-};
-
-/* --- TIMER MODULE --- */
-const timer = {
-    interval: null,
-    circuit: null,
-    stepIdx: 0,
-    timeRem: 0,
-    isRunning: false,
-
-    load: (id) => {
-        db.getAll(list => {
-            timer.circuit = list.find(x => x.id === id);
-            timer.reset();
-            app.nav('view-timer');
-        });
-    },
-
-    reset: () => {
-        timer.pause();
-        timer.stepIdx = 0;
-        timer.setupStep();
-        document.getElementById('btn-toggle').innerText = "START";
-    },
-
-    setupStep: () => {
-        if(!timer.circuit) return;
-        
-        // Check End
-        if(timer.stepIdx >= timer.circuit.steps.length) {
-            if(document.getElementById('loop-circuit').checked) {
-                timer.stepIdx = 0; // Loop
-            } else {
-                timer.finish();
-                return;
-            }
-        }
-
-        const step = timer.circuit.steps[timer.stepIdx];
-        const nextStep = timer.circuit.steps[timer.stepIdx + 1];
-        
-        timer.timeRem = step.duration;
-        
-        // UI Updates
-        const lbl = document.getElementById('t-label');
-        lbl.innerText = step.name;
-        lbl.style.color = step.type === 'work' ? "var(--cyan)" : "var(--pink)";
-        
-        document.getElementById('t-time').innerText = timer.fmt(timer.timeRem);
-        document.getElementById('t-next').innerText = nextStep ? `NEXT: ${nextStep.name}` : "NEXT: FINISH";
-        
-        // Reset Progress bar
-        document.getElementById('t-bar').style.transition = 'none';
-        document.getElementById('t-bar').style.width = '100%';
-        document.getElementById('t-bar').style.backgroundColor = step.type === 'work' ? "var(--cyan)" : "var(--pink)";
-    },
-
-    toggle: () => {
-        if(timer.isRunning) timer.pause();
-        else timer.start();
-    },
-
-    start: () => {
-        if(!timer.circuit) return;
-        audio.init(); // User interaction required first
-        timer.isRunning = true;
-        document.getElementById('btn-toggle').innerText = "PAUSE";
-        audio.beep('high');
-
-        timer.interval = setInterval(() => {
-            timer.timeRem--;
-            document.getElementById('t-time').innerText = timer.fmt(timer.timeRem);
+            const modal = document.getElementById('task-modal');
+            modal.classList.remove('pointer-events-none');
+            modal.classList.add('opacity-100');
+            modal.children[0].classList.remove('translate-y-full');
             
-            // Progress Bar
-            const step = timer.circuit.steps[timer.stepIdx];
-            const pct = (timer.timeRem / step.duration) * 100;
-            document.getElementById('t-bar').style.transition = 'width 1s linear';
-            document.getElementById('t-bar').style.width = pct + '%';
+            setPickersToDuration(isEdit ? task.duration : 0);
+        };
 
-            // Audio Cues
-            if(timer.timeRem <= 3 && timer.timeRem > 0) audio.beep('low');
-            if(timer.timeRem === 0) {
-                audio.beep('high');
-                timer.stepIdx++;
-                timer.setupStep();
-            }
-        }, 1000);
-    },
+        const closeTaskModal = () => {
+            const modal = document.getElementById('task-modal');
+            modal.classList.add('pointer-events-none');
+            modal.classList.remove('opacity-100');
+            modal.children[0].classList.add('translate-y-full');
+        };
 
-    pause: () => {
-        timer.isRunning = false;
-        clearInterval(timer.interval);
-        document.getElementById('btn-toggle').innerText = "RESUME";
-    },
+        const confirmTaskAction = () => {
+            const h = getPickerValue('h');
+            const m = getPickerValue('m');
+            const s = getPickerValue('s');
+            const total = (h * 3600) + (m * 60) + s;
+            if (total <= 0) return;
 
-    stop: () => {
-        timer.pause();
-        app.nav('view-library');
-    },
+            const name = document.getElementById('modal-task-name').value || (editingTaskType === 'workout' ? 'Workout' : 'Break');
+            const taskData = { id: Date.now().toString(), type: editingTaskType, name, duration: total };
 
-    finish: () => {
-        timer.pause();
-        document.getElementById('t-label').innerText = "COMPLETE";
-        document.getElementById('t-time').innerText = "DONE";
-        audio.beep('end');
-        document.getElementById('btn-toggle').innerText = "RESTART";
-    },
+            if (currentlyEditingTaskIdx !== null) currentCircuit.tasks[currentlyEditingTaskIdx] = taskData;
+            else currentCircuit.tasks.push(taskData);
 
-    fmt: (s) => {
-        return Math.floor(s/60).toString().padStart(2,'0') + ":" + (s%60).toString().padStart(2,'0');
-    }
-};
+            renderTasks();
+            closeTaskModal();
+        };
 
-// Bootstrap
-window.onload = app.init;
-</script>
+        const renderTasks = () => {
+            const list = document.getElementById('task-list');
+            list.innerHTML = '';
+            currentCircuit.tasks.forEach((task, idx) => {
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-xl flex justify-between items-center cursor-pointer ${task.type === 'workout' ? 'bg-cyan-500/10 border border-cyan-500/20' : 'bg-white/5 border border-white/10'}`;
+                card.onclick = () => showTaskModal(task.type, idx);
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center ${task.type === 'workout' ? 'bg-cyan-400 text-black' : 'bg-white/20 text-white'}">
+                            <i class="fas ${task.type === 'workout' ? 'fa-dumbbell' : 'fa-mug-hot'} text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-sm text-white">${task.name}</p>
+                            <p class="text-xs text-white/40">${formatTime(task.duration)}</p>
+                        </div>
+                    </div>
+                    <button onclick="event.stopPropagation(); currentCircuit.tasks.splice(${idx}, 1); renderTasks();" class="text-white/20 p-2"><i class="fas fa-trash"></i></button>
+                `;
+                list.appendChild(card);
+            });
+        };
+
+        // Scroll Picker Helpers
+        const populatePickers = () => {
+            const config = { h: 24, m: 60, s: 60 };
+            Object.keys(config).forEach(key => {
+                const container = document.getElementById(`picker-${key}`);
+                container.innerHTML = '<div class="picker-item"></div>';
+                for (let i = 0; i < config[key]; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'picker-item';
+                    item.innerText = i.toString().padStart(2, '0');
+                    container.appendChild(item);
+                }
+                container.innerHTML += '<div class="picker-item"></div>';
+            });
+        };
+
+        const handlePickerScroll = (el) => {
+            const items = el.querySelectorAll('.picker-item');
+            const center = el.scrollTop + 75;
+            items.forEach(item => {
+                const itemCenter = item.offsetTop + 25;
+                if (Math.abs(center - itemCenter) < 25) item.classList.add('active');
+                else item.classList.remove('active');
+            });
+        };
+
+        const getPickerValue = (id) => {
+            const active = document.querySelector(`#picker-${id} .picker-item.active`);
+            return active ? parseInt(active.innerText) : 0;
+        };
+
+        const setPickersToDuration = (seconds) => {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            const vals = { h, m, s };
+            Object.keys(vals).forEach(id => {
+                const el = document.getElementById(`picker-${id}`);
+                el.scrollTop = vals[id] * 50;
+                handlePickerScroll(el);
+            });
+        };
+
+        // Timer Execution
+        const startCircuit = (id) => {
+            currentCircuit = circuits.find(c => c.id === id);
+            if (!currentCircuit || currentCircuit.tasks.length === 0) return;
+            currentTaskIdx = 0;
+            navigate('timer');
+            setupTask(0);
+        };
+
+        const setupTask = (idx) => {
+            if (idx >= currentCircuit.tasks.length) return finishCircuit();
+            const task = currentCircuit.tasks[idx];
+            timerSeconds = task.duration;
+            totalTaskSeconds = task.duration;
+            document.getElementById('current-circuit-title').innerText = currentCircuit.name;
+            document.getElementById('current-task-name').innerText = task.name;
+            const next = currentCircuit.tasks[idx + 1];
+            document.getElementById('next-task-info').innerText = next ? `Next: ${next.name}` : 'Next: Finish';
+            updateTimerUI();
+            isPaused = true;
+            updatePlayBtnUI();
+        };
+
+        const toggleTimer = () => {
+            isPaused = !isPaused;
+            updatePlayBtnUI();
+            if (!isPaused) {
+                activeTimer = setInterval(() => {
+                    timerSeconds--;
+                    updateTimerUI();
+                    if (timerSeconds <= 0) {
+                        clearInterval(activeTimer);
+                        currentTaskIdx++;
+                        playBeep();
+                        setupTask(currentTaskIdx);
+                    }
+                }, 1000);
+            } else clearInterval(activeTimer);
+        };
+
+        const stopTimer = () => {
+            clearInterval(activeTimer);
+            isPaused = true;
+            updatePlayBtnUI();
+            navigate('home');
+        };
+
+        const updateTimerUI = () => {
+            document.getElementById('timer-display').innerText = formatTime(timerSeconds);
+            const progress = document.getElementById('timer-progress');
+            const offset = 753.98 - (753.98 * (timerSeconds / totalTaskSeconds));
+            progress.style.strokeDashoffset = offset;
+        };
+
+        const updatePlayBtnUI = () => {
+            const btn = document.getElementById('timer-ctrl-btn');
+            btn.innerHTML = isPaused ? '<i class="fas fa-play"></i>' : '<i class="fas fa-pause"></i>';
+            if (!isPaused) btn.classList.add('timer-active');
+            else btn.classList.remove('timer-active');
+        };
+
+        const finishCircuit = () => {
+            document.getElementById('current-task-name').innerText = "DONE!";
+            document.getElementById('timer-display').innerText = "00:00";
+            setTimeout(() => navigate('home'), 2000);
+        };
+
+        const formatTime = (s) => {
+            const hrs = Math.floor(s / 3600);
+            const mins = Math.floor((s % 3600) / 60);
+            const secs = s % 60;
+            if (hrs > 0) return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        };
+
+        const playBeep = () => {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                osc.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            } catch (e) {}
+        };
+
+        window.onload = () => {
+            initDB();
+            populatePickers();
+        };
+    </script>
 </body>
 </html>
