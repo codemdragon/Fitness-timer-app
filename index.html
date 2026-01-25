@@ -574,50 +574,63 @@
             saveSession();
         };
 
-        const toggleTimer = () => {
-            isPaused = !isPaused;
+        const startTimer = () => {
+            if (!isPaused) return;
+            isPaused = false;
             updatePlayBtnUI();
-            vibrate([50]);
+            endTime = Date.now() + (timerSeconds * 1000);
+            activeTimer = setInterval(timerTick, 500);
+        };
 
-            if (!isPaused) {
-                endTime = Date.now() + (timerSeconds * 1000);
-                activeTimer = setInterval(() => {
-                    const now = Date.now();
+        const pauseTimer = () => {
+            if (isPaused) return;
+            isPaused = true;
+            clearInterval(activeTimer);
+            updatePlayBtnUI();
+        };
 
-                    if (now >= endTime) {
-                        clearInterval(activeTimer);
-                        timerSeconds = 0;
-                        updateTimerUI();
+        const timerTick = () => {
+            const now = Date.now();
 
-                        currentTaskIdx++;
-
-                        if (currentTaskIdx < currentCircuit.tasks.length) {
-                            notify("Stage Complete", `Up next: ${currentCircuit.tasks[currentTaskIdx].name}`);
-                            vibrate([200, 100, 200]);
-                            playBeep();
-                            setupTask(currentTaskIdx);
-                            toggleTimer(); // Auto-start next task
-                        } else {
-                            if (isLooping) {
-                                currentTaskIdx = 0;
-                                notify("Circuit Restarting", "Loop mode active");
-                                setupTask(0);
-                                toggleTimer();
-                            } else {
-                                finishCircuit();
-                            }
-                        }
-                        return;
-                    }
-
-                    // Still running
-                    timerSeconds = Math.ceil((endTime - now) / 1000);
-                    updateTimerUI();
-                    saveSession();
-                }, 500); // authoritative time check, frequency matters less
-            } else {
+            if (now >= endTime) {
                 clearInterval(activeTimer);
+                timerSeconds = 0;
+                updateTimerUI();
+                advanceTask();
+                return;
             }
+
+            timerSeconds = Math.ceil((endTime - now) / 1000);
+            updateTimerUI();
+            saveSession();
+        };
+
+        const advanceTask = () => {
+            currentTaskIdx++;
+
+            if (currentTaskIdx < currentCircuit.tasks.length) {
+                notify("Stage Complete", `Up next: ${currentCircuit.tasks[currentTaskIdx].name}`);
+                vibrate([200, 100, 200]);
+                playBeep();
+                setupTask(currentTaskIdx);
+                startTimer();
+                return;
+            }
+
+            if (isLooping) {
+                currentTaskIdx = 0;
+                notify("Circuit Restarting", "Loop mode active");
+                setupTask(0);
+                startTimer();
+                return;
+            }
+
+            finishCircuit();
+        };
+
+        const toggleTimer = () => {
+            vibrate([50]);
+            isPaused ? startTimer() : pauseTimer();
         };
 
         const stopTimer = () => {
@@ -630,28 +643,9 @@
         };
 
         const skipTask = () => {
-            clearInterval(activeTimer);
+            pauseTimer();
             vibrate([50, 30, 50]);
-            currentTaskIdx++;
-            if (currentTaskIdx < currentCircuit.tasks.length) {
-                setupTask(currentTaskIdx);
-                if (!isPaused) {
-                    // If it was playing, keep playing the next task
-                    isPaused = true; // toggleTimer will flip it back to false
-                    toggleTimer();
-                }
-            } else {
-                if (isLooping) {
-                    currentTaskIdx = 0;
-                    setupTask(0);
-                    if (!isPaused) {
-                        isPaused = true;
-                        toggleTimer();
-                    }
-                } else {
-                    finishCircuit();
-                }
-            }
+            advanceTask();
         };
 
         const toggleLoop = () => {
@@ -813,21 +807,10 @@
             document.addEventListener("visibilitychange", () => {
                 if (!document.hidden && !isPaused && endTime) {
                     if (Date.now() >= endTime) {
-                        clearInterval(activeTimer);
+                        pauseTimer();
                         timerSeconds = 0;
                         updateTimerUI();
-
-                        currentTaskIdx++;
-                        if (currentTaskIdx < currentCircuit.tasks.length) {
-                            setupTask(currentTaskIdx);
-                            toggleTimer();
-                        } else if (isLooping) {
-                            currentTaskIdx = 0;
-                            setupTask(0);
-                            toggleTimer();
-                        } else {
-                            finishCircuit();
-                        }
+                        advanceTask();
                     } else {
                         // Just catch up the display
                         timerSeconds = Math.ceil((endTime - Date.now()) / 1000);
