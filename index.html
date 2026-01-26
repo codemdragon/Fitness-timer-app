@@ -1,14 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aether Timer | Futuristic Intervals</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#00f3ff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Aether | Sequence Timer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -16,7 +11,6 @@
 
         :root {
             --neon-cyan: #00f3ff;
-            --neon-magenta: #ff00ff;
             --dark-bg: #0a0b1e;
             --glass: rgba(255, 255, 255, 0.05);
         }
@@ -25,1020 +19,234 @@
             background-color: var(--dark-bg);
             color: #e0e0e0;
             font-family: 'Rajdhani', sans-serif;
-            overflow: hidden;
-            /* Prevent body scroll, handled by internal pages */
             touch-action: manipulation;
+            height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .font-orbitron {
-            font-family: 'Orbitron', sans-serif;
-        }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
 
         .glass-panel {
             background: var(--glass);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
         }
 
         .neon-text-cyan {
             color: var(--neon-cyan);
-            text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
         }
 
-        .neon-bg-cyan {
-            background-color: var(--neon-cyan);
-            box-shadow: 0 0 15px var(--neon-cyan);
+        .neon-border-cyan {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
         }
 
-        .picker-container {
-            height: 150px;
-            overflow-y: scroll;
-            scrollbar-width: none;
-            mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
-            -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
-        }
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
-        .picker-container::-webkit-scrollbar {
-            display: none;
-        }
-
-        .picker-item {
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            transition: all 0.2s;
-            opacity: 0.4;
-        }
-
-        .picker-item.active {
-            opacity: 1;
-            color: var(--neon-cyan);
-            font-weight: bold;
-            transform: scale(1.2);
+        .active-row {
+            border-left: 4px solid var(--neon-cyan);
+            background: rgba(0, 243, 255, 0.05);
         }
 
         @keyframes pulse {
-            0% {
-                transform: scale(1);
-                opacity: 0.8;
-            }
-
-            50% {
-                transform: scale(1.05);
-                opacity: 1;
-            }
-
-            100% {
-                transform: scale(1);
-                opacity: 0.8;
-            }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.02); }
         }
-
-        .timer-active {
-            animation: pulse 2s infinite ease-in-out;
-        }
-
-        .offline-badge {
-            position: fixed;
-            top: 1rem;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 0, 0, 0.2);
-            border: 1px solid #ff0000;
-            color: #ff0000;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            z-index: 100;
-            display: none;
-            backdrop-filter: blur(4px);
-        }
-
-        .page {
-            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            overflow-y: auto;
-            padding-bottom: 120px;
-            /* Space for fixed buttons */
-        }
-
-        .page-hidden {
-            transform: translateY(20px);
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        /* Landscape Adjustments */
-        @media (orientation: landscape) {
-            .timer-layout {
-                flex-direction: row !important;
-                justify-content: center !important;
-                align-items: center !important;
-                height: 100% !important;
-                padding-top: 0 !important;
-                gap: 2rem !important;
-                /* Reduced from 4rem */
-            }
-
-            .timer-ring-container {
-                width: 45vh !important;
-                height: 45vh !important;
-                max-width: 250px;
-                max-height: 250px;
-            }
-
-            .timer-display-text {
-                font-size: 10vh !important;
-            }
-
-            /* Stack buttons 2x2 in very narrow landscape if needed, 
-               but for now just make them smaller */
-            .landscape-controls {
-                display: grid !important;
-                grid-template-columns: repeat(2, 1fr) !important;
-                gap: 0.5rem !important;
-            }
-        }
-
-        /* Extra small landscape heights */
-        @media (orientation: landscape) and (max-height: 400px) {
-            .timer-layout {
-                gap: 1rem !important;
-            }
-
-            .timer-ring-container {
-                max-width: 180px;
-                max-height: 180px;
-            }
-        }
+        .timer-running { animation: pulse 2s infinite ease-in-out; }
     </style>
 </head>
+<body class="p-4">
 
-<body class="h-[100dvh] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
-    <div id="offline-indicator" class="offline-badge">OFFLINE MODE</div>
-
-    <!-- Container -->
-    <div class="relative w-full max-w-4xl h-full sm:max-h-[90vh] glass-panel overflow-hidden">
-
-        <header
-            class="absolute top-0 left-0 w-full p-4 flex justify-between items-center border-b border-white/10 z-20 bg-dark-bg/80 backdrop-blur-md">
-            <h1 class="font-orbitron text-lg sm:text-xl neon-text-cyan tracking-widest">AETHER.IO</h1>
-            <button onclick="navigate('home')" id="home-btn" class="hidden text-white/50 hover:text-white px-3 py-1">
-                <i class="fas fa-home text-lg"></i>
-            </button>
+    <div class="relative w-full max-w-lg h-[90vh] glass-panel rounded-[32px] overflow-hidden flex flex-col">
+        
+        <header class="p-6 text-center border-b border-white/10">
+            <h1 class="font-orbitron text-xl neon-text-cyan tracking-[0.3em]">AETHER.IO</h1>
         </header>
 
-        <!-- HOME SCREEN -->
-        <div id="page-home" class="page p-6 pt-24">
-            <div class="text-center mb-8">
-                <h2 class="text-3xl font-bold text-white">My Circuits</h2>
-                <p class="text-white/40">Persistent Interval Storage</p>
+        <div class="flex-1 flex flex-col items-center justify-center p-6 space-y-4">
+            <div id="status-label" class="text-white/40 tracking-widest uppercase text-sm">READY</div>
+            <div id="timer-display" class="font-orbitron text-7xl sm:text-8xl font-bold text-white tracking-tighter">00:00</div>
+            <div id="next-label" class="text-xs text-white/20 uppercase italic">Next: Set timers below</div>
+        </div>
+
+        <div id="timer-list" class="flex-1 overflow-y-auto px-6 space-y-3 custom-scroll pb-4">
             </div>
-            <div id="circuit-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto px-2"></div>
-            <div class="mt-8 max-w-2xl mx-auto px-2">
-                <button onclick="createNewCircuit()"
-                    class="w-full py-4 rounded-2xl border-2 border-dashed border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition">
-                    <i class="fas fa-plus mr-2"></i> Create New Circuit
+
+        <div class="p-6 bg-black/20 border-t border-white/10 space-y-4">
+            <div class="flex gap-3">
+                <button onclick="addTimerRow()" class="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold transition">
+                    <i class="fas fa-plus mr-2"></i>ADD STAGE
+                </button>
+                <button onclick="resetAll()" class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold transition">
+                    RESET
                 </button>
             </div>
-        </div>
-
-        <!-- EDITOR SCREEN -->
-        <div id="page-editor" class="page p-6 pt-24 page-hidden">
-            <div class="max-w-2xl mx-auto">
-                <div class="flex items-center space-x-3 mb-6">
-                    <input id="circuit-name-input" type="text" placeholder="Circuit Name"
-                        class="bg-transparent text-2xl font-bold border-b border-white/20 focus:border-cyan-400 outline-none w-full text-white">
-                </div>
-                <div id="task-list" class="space-y-3 pb-24"></div>
-            </div>
-
-            <div class="fixed bottom-6 left-0 w-full px-6 flex flex-col items-center space-y-4 z-30">
-                <div id="install-prompt"
-                    class="hidden w-full max-w-sm glass-panel p-4 flex justify-between items-center border-cyan-500/50">
-                    <span class="text-sm font-bold text-cyan-400">Install Aether App?</span>
-                    <button onclick="handleInstallClick()"
-                        class="px-4 py-2 neon-bg-cyan text-black text-xs font-bold rounded-lg">INSTALL</button>
-                </div>
-                <div class="w-full max-w-xl flex space-x-2 sm:space-x-3 glass-panel p-2 sm:p-3 border-white/20">
-                    <button onclick="showTaskModal('workout')"
-                        class="flex-1 py-2 sm:py-3 neon-bg-cyan text-black font-bold rounded-xl text-[10px] sm:text-xs">
-                        <i class="fas fa-plus mr-1 sm:mr-2"></i>WORKOUT</button>
-                    <button onclick="showTaskModal('break')"
-                        class="flex-1 py-2 sm:py-3 bg-white/10 text-white font-bold rounded-xl text-[10px] sm:text-xs border border-white/20">
-                        <i class="fas fa-plus mr-1 sm:mr-2"></i>BREAK</button>
-                    <button onclick="saveCircuit()"
-                        class="w-12 h-12 flex items-center justify-center bg-green-500 text-black rounded-xl shadow-lg shrink-0">
-                        <i class="fas fa-save"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- TIMER SCREEN -->
-        <div id="page-timer" class="page page-hidden flex flex-col pt-16 sm:pt-20 overflow-hidden">
-            <div
-                class="timer-layout flex flex-col items-center justify-center flex-1 space-y-4 sm:space-y-8 landscape:space-y-0">
-
-                <div class="text-center landscape:text-left">
-                    <h2 id="current-circuit-title" class="text-white/40 tracking-widest mb-1 uppercase text-sm">CIRCUIT
-                    </h2>
-                    <h1 id="current-task-name"
-                        class="text-3xl sm:text-4xl font-orbitron font-bold neon-text-cyan uppercase break-words px-4">
-                        READY</h1>
-                    <div id="next-task-info" class="text-xs text-white/30 mt-2 uppercase">Next: Finish</div>
-                </div>
-
-                <div class="timer-ring-container relative w-48 h-48 sm:w-64 sm:h-64 flex items-center justify-center">
-                    <svg class="w-full h-full -rotate-90">
-                        <circle cx="50%" cy="50%" r="45%" stroke="rgba(255,255,255,0.05)" stroke-width="8"
-                            fill="transparent" />
-                        <circle id="timer-progress" cx="50%" cy="50%" r="45%" stroke="var(--neon-cyan)" stroke-width="8"
-                            fill="transparent" stroke-dasharray="1000" stroke-dashoffset="0" stroke-linecap="round" />
-                    </svg>
-                    <div class="absolute flex flex-col items-center">
-                        <span id="timer-display"
-                            class="timer-display-text text-5xl sm:text-6xl font-orbitron font-bold text-white">00:00</span>
-                    </div>
-                </div>
-
-                <div class="flex space-x-3 sm:space-x-6 landscape:space-x-0 landscape-controls">
-                    <button id="timer-ctrl-btn" onclick="toggleTimer()"
-                        class="w-12 h-12 sm:w-20 sm:h-20 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-xl sm:text-2xl shadow-[0_0_20px_rgba(0,243,255,0.2)]">
-                        <i class="fas fa-play"></i>
-                    </button>
-                    <button onclick="stopTimer()"
-                        class="w-12 h-12 sm:w-20 sm:h-20 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl sm:text-2xl border border-white/10">
-                        <i class="fas fa-stop"></i>
-                    </button>
-                    <button onclick="skipTask()"
-                        class="w-12 h-12 sm:w-20 sm:h-20 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl sm:text-2xl border border-white/10">
-                        <i class="fas fa-forward"></i>
-                    </button>
-                    <button id="loop-btn" onclick="toggleLoop()"
-                        class="w-12 h-12 sm:w-20 sm:h-20 rounded-full bg-white/5 flex items-center justify-center text-white/40 text-xl sm:text-2xl border border-white/10">
-                        <i class="fas fa-redo"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- TASK MODAL -->
-    <div id="task-modal"
-        class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-end justify-center z-50 opacity-0 pointer-events-none transition-opacity">
-        <div
-            class="w-full max-w-md glass-panel p-6 sm:p-8 rounded-t-[40px] transform translate-y-full transition-transform duration-300">
-            <h3 id="modal-title" class="text-xl font-bold mb-4 text-center text-white">Add Stage</h3>
-            <input id="modal-task-name" type="text" placeholder="Task Name"
-                class="w-full bg-white/5 border border-white/10 p-3 rounded-xl mb-4 outline-none focus:border-cyan-400 text-white">
-            <div class="flex items-center justify-around mb-6 relative h-40">
-                <div class="absolute h-[50px] w-full border-y border-cyan-400/30 pointer-events-none"></div>
-                <div class="flex flex-col items-center">
-                    <span class="text-[10px] uppercase text-white/40 mb-1">H</span>
-                    <div id="picker-h" class="picker-container w-12" onscroll="handlePickerScroll(this)"></div>
-                </div>
-                <div class="text-xl text-cyan-400">:</div>
-                <div class="flex flex-col items-center">
-                    <span class="text-[10px] uppercase text-white/40 mb-1">M</span>
-                    <div id="picker-m" class="picker-container w-12" onscroll="handlePickerScroll(this)"></div>
-                </div>
-                <div class="text-xl text-cyan-400">:</div>
-                <div class="flex flex-col items-center">
-                    <span class="text-[10px] uppercase text-white/40 mb-1">S</span>
-                    <div id="picker-s" class="picker-container w-12" onscroll="handlePickerScroll(this)"></div>
-                </div>
-            </div>
-            <div class="flex space-x-3">
-                <button onclick="closeTaskModal()"
-                    class="flex-1 py-3 rounded-xl bg-white/5 font-bold text-white text-sm">CANCEL</button>
-                <button onclick="confirmTaskAction()"
-                    class="flex-1 py-3 rounded-xl neon-bg-cyan text-black font-bold text-sm">CONFIRM</button>
-            </div>
+            
+            <button id="mainBtn" onclick="toggleMain()" class="w-full py-4 bg-[#00f3ff] text-black font-orbitron font-bold rounded-2xl shadow-[0_0_20px_rgba(0,243,255,0.3)] active:scale-95 transition">
+                START CIRCUIT
+            </button>
         </div>
     </div>
 
     <script>
-        let db;
-        let circuits = [];
-        let currentCircuit = null;
-        let activeTimer = null;
-        let timerSeconds = 0;
-        let totalTaskSeconds = 0;
-        let isPaused = true;
-        let currentTaskIdx = 0;
-        let editingTaskType = 'workout';
-        let currentlyEditingTaskIdx = null;
-        let isLooping = false;
-        let endTime = null;
-        let deferredPrompt = null;
-        let wakeLock = null;
-        let keepAliveAudio = null;
+        let timers = [
+            { name: "Sprints", seconds: 30 },
+            { name: "Recovery", seconds: 15 }
+        ];
+        
+        let currentIndex = 0;
+        let timeLeft = 0;
+        let timerInterval = null;
+        let audioCtx = null;
 
-        // Persistent AudioContext for mobile compatibility
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-
-        // IndexedDB Logic
-        const initDB = () => {
-            const request = indexedDB.open('AetherIntervalDB', 1);
-            request.onupgradeneeded = (e) => {
-                db = e.target.result;
-                if (!db.objectStoreNames.contains('circuits')) {
-                    db.createObjectStore('circuits', { keyPath: 'id' });
-                }
-            };
-            request.onsuccess = (e) => {
-                db = e.target.result;
-                loadState();
-            };
-        };
-
-        const loadState = () => {
-            const tx = db.transaction('circuits', 'readonly');
-            const store = tx.objectStore('circuits');
-            const request = store.getAll();
-            request.onsuccess = () => {
-                circuits = request.result || [];
-                renderCircuitList();
-            };
-        };
-
-        const saveToDB = (circuit) => {
-            if (!db) return;
-            const tx = db.transaction('circuits', 'readwrite');
-            tx.objectStore('circuits').put(circuit);
-        };
-
-        const deleteFromDB = (id) => {
-            if (!db) return;
-            const tx = db.transaction('circuits', 'readwrite');
-            tx.objectStore('circuits').delete(id);
-            circuits = circuits.filter(c => c.id !== id);
-            renderCircuitList();
-        };
-
-        // UI & Navigation
-        const navigate = (pageId) => {
-            document.querySelectorAll('.page').forEach(p => p.classList.add('page-hidden'));
-            document.getElementById(`page-${pageId}`).classList.remove('page-hidden');
-            document.getElementById('home-btn').style.display = pageId === 'home' ? 'none' : 'block';
-            if (pageId === 'home') stopTimer();
-            if (pageId === 'timer') {
-                Notification.requestPermission();
-                saveSession();
-            }
-        };
-
-        const createNewCircuit = () => {
-            currentCircuit = { id: Date.now().toString(), name: '', tasks: [] };
-            document.getElementById('circuit-name-input').value = '';
-            renderTasks();
-            navigate('editor');
-        };
-
-        const editCircuit = (id) => {
-            currentCircuit = JSON.parse(JSON.stringify(circuits.find(c => c.id === id)));
-            document.getElementById('circuit-name-input').value = currentCircuit.name;
-            renderTasks();
-            navigate('editor');
-        };
-
-        const saveCircuit = () => {
-            currentCircuit.name = document.getElementById('circuit-name-input').value || 'Untitled Circuit';
-            const idx = circuits.findIndex(c => c.id === currentCircuit.id);
-            if (idx > -1) circuits[idx] = currentCircuit;
-            else circuits.push(currentCircuit);
-            saveToDB(currentCircuit);
-            renderCircuitList();
-            navigate('home');
-        };
-
-        const renderCircuitList = () => {
-            const list = document.getElementById('circuit-list');
+        function render() {
+            const list = document.getElementById('timer-list');
             list.innerHTML = '';
-            circuits.forEach(c => {
-                const card = document.createElement('div');
-                card.className = 'glass-panel p-4 flex justify-between items-center group cursor-pointer active:scale-95 transition';
-                card.onclick = () => startCircuit(c.id);
-                card.innerHTML = `
-                    <div class="flex-1">
-                        <h3 class="text-lg font-bold text-white">${c.name}</h3>
-                        <p class="text-white/30 text-xs">${c.tasks.length} Stages • ${formatTime(c.tasks.reduce((a, b) => a + b.duration, 0))}</p>
+            
+            timers.forEach((t, index) => {
+                const isActive = index === currentIndex && timerInterval;
+                const row = document.createElement('div');
+                row.className = `flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/5 transition-all ${isActive ? 'active-row' : ''}`;
+                
+                row.innerHTML = `
+                    <input class="bg-transparent text-sm font-bold text-white outline-none flex-1" 
+                           value="${t.name}" onchange="updateTimer(${index}, 'name', this.value)">
+                    <div class="flex items-center bg-black/30 rounded-lg px-2 border border-white/10">
+                        <input class="bg-transparent w-10 py-1 text-center text-cyan-400 font-bold outline-none" 
+                               type="number" value="${t.seconds}" onchange="updateTimer(${index}, 'seconds', this.value)">
+                        <span class="text-[10px] text-white/30 pr-1">S</span>
                     </div>
-                    <div class="flex space-x-1">
-                        <button onclick="event.stopPropagation(); editCircuit('${c.id}')" class="text-white/40 hover:text-cyan-400 p-2"><i class="fas fa-edit"></i></button>
-                        <button onclick="event.stopPropagation(); if(confirm('Delete this circuit?')) deleteFromDB('${c.id}')" class="text-white/40 hover:text-red-400 p-2"><i class="fas fa-trash-alt"></i></button>
-                    </div>
+                    <button onclick="removeTimer(${index})" class="text-white/20 hover:text-red-500 transition px-2">
+                        <i class="fas fa-times"></i>
+                    </button>
                 `;
-                list.appendChild(card);
+                list.appendChild(row);
             });
-        };
 
-        // Task Management
-        const showTaskModal = (type, taskIdx = null) => {
-            editingTaskType = type;
-            currentlyEditingTaskIdx = taskIdx;
-            const isEdit = taskIdx !== null;
-            const task = isEdit ? currentCircuit.tasks[taskIdx] : null;
-
-            document.getElementById('modal-title').innerText = isEdit ? `Edit ${type}` : `Add ${type}`;
-            document.getElementById('modal-task-name').value = isEdit ? task.name : '';
-
-            const modal = document.getElementById('task-modal');
-            modal.classList.remove('pointer-events-none');
-            modal.classList.add('opacity-100');
-            modal.children[0].classList.remove('translate-y-full');
-
-            setPickersToDuration(isEdit ? task.duration : 0);
-        };
-
-        const closeTaskModal = () => {
-            const modal = document.getElementById('task-modal');
-            modal.classList.add('pointer-events-none');
-            modal.classList.remove('opacity-100');
-            modal.children[0].classList.add('translate-y-full');
-        };
-
-        const confirmTaskAction = () => {
-            const h = getPickerValue('h');
-            const m = getPickerValue('m');
-            const s = getPickerValue('s');
-            const total = (h * 3600) + (m * 60) + s;
-            if (total <= 0) return;
-
-            const name = document.getElementById('modal-task-name').value || (editingTaskType === 'workout' ? 'Workout' : 'Break');
-            const taskData = { id: Date.now().toString(), type: editingTaskType, name, duration: total };
-
-            if (currentlyEditingTaskIdx !== null) currentCircuit.tasks[currentlyEditingTaskIdx] = taskData;
-            else currentCircuit.tasks.push(taskData);
-
-            renderTasks();
-            closeTaskModal();
-        };
-
-        const renderTasks = () => {
-            const list = document.getElementById('task-list');
-            list.innerHTML = '';
-            currentCircuit.tasks.forEach((task, idx) => {
-                const card = document.createElement('div');
-                card.className = `p-3 rounded-xl flex justify-between items-center cursor-pointer ${task.type === 'workout' ? 'bg-cyan-500/10 border border-cyan-500/20' : 'bg-white/5 border border-white/10'}`;
-                card.onclick = () => showTaskModal(task.type, idx);
-                card.innerHTML = `
-                    <div class="flex items-center space-x-3">
-                        <div class="w-7 h-7 rounded-full flex items-center justify-center ${task.type === 'workout' ? 'bg-cyan-400 text-black' : 'bg-white/20 text-white'}">
-                            <i class="fas ${task.type === 'workout' ? 'fa-dumbbell' : 'fa-mug-hot'} text-[10px]"></i>
-                        </div>
-                        <div>
-                            <p class="font-bold text-sm text-white">${task.name}</p>
-                            <p class="text-[10px] text-white/40 uppercase tracking-tighter">${formatTime(task.duration)}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <div class="flex flex-col space-y-1">
-                            <button onclick="event.stopPropagation(); moveTask(${idx}, -1)" class="text-white/20 hover:text-white"><i class="fas fa-chevron-up text-[10px]"></i></button>
-                            <button onclick="event.stopPropagation(); moveTask(${idx}, 1)" class="text-white/20 hover:text-white"><i class="fas fa-chevron-down text-[10px]"></i></button>
-                        </div>
-                        <button onclick="event.stopPropagation(); if(confirm('Remove this stage?')) { currentCircuit.tasks.splice(${idx}, 1); renderTasks(); }" class="text-white/20 p-2 hover:text-red-400"><i class="fas fa-trash text-sm"></i></button>
-                    </div>
-                `;
-                list.appendChild(card);
-            });
-        };
-
-        // Scroll Picker Helpers
-        const populatePickers = () => {
-            const config = { h: 24, m: 60, s: 60 };
-            Object.keys(config).forEach(key => {
-                const container = document.getElementById(`picker-${key}`);
-                container.innerHTML = '<div class="picker-item"></div>';
-                for (let i = 0; i < config[key]; i++) {
-                    const item = document.createElement('div');
-                    item.className = 'picker-item';
-                    item.innerText = i.toString().padStart(2, '0');
-                    container.appendChild(item);
-                }
-                container.innerHTML += '<div class="picker-item"></div>';
-            });
-        };
-
-        const handlePickerScroll = (el) => {
-            const items = el.querySelectorAll('.picker-item');
-            const center = el.scrollTop + 75;
-            items.forEach(item => {
-                const itemCenter = item.offsetTop + 25;
-                if (Math.abs(center - itemCenter) < 25) item.classList.add('active');
-                else item.classList.remove('active');
-            });
-        };
-
-        const getPickerValue = (id) => {
-            const active = document.querySelector(`#picker-${id} .picker-item.active`);
-            return active ? parseInt(active.innerText) : 0;
-        };
-
-        const setPickersToDuration = (seconds) => {
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = seconds % 60;
-            const vals = { h, m, s };
-            Object.keys(vals).forEach(id => {
-                const el = document.getElementById(`picker-${id}`);
-                el.scrollTop = vals[id] * 50;
-                setTimeout(() => handlePickerScroll(el), 10);
-            });
-        };
-
-        // Timer Execution
-        const startCircuit = (id) => {
-            currentCircuit = circuits.find(c => c.id === id);
-            if (!currentCircuit || currentCircuit.tasks.length === 0) return;
-            currentTaskIdx = 0;
-            navigate('timer');
-            setupTask(0);
-        };
-
-        const setupTask = (idx) => {
-            if (idx >= currentCircuit.tasks.length) return finishCircuit();
-            const task = currentCircuit.tasks[idx];
-            timerSeconds = task.duration;
-            totalTaskSeconds = task.duration;
-            document.getElementById('current-circuit-title').innerText = currentCircuit.name;
-            document.getElementById('current-task-name').innerText = task.name;
-            const next = currentCircuit.tasks[idx + 1];
-            document.getElementById('next-task-info').innerText = next ? `Next: ${next.name}` : 'Next: Finish';
-            updateTimerUI();
-            isPaused = true;
-            updatePlayBtnUI();
-            saveSession();
-        };
-
-        const startTimer = () => {
-            console.log('startTimer called, isPaused:', isPaused, 'timerSeconds:', timerSeconds);
-
-            // Clear any existing timer before starting new one
-            if (activeTimer) {
-                clearInterval(activeTimer);
-                activeTimer = null;
+            if (timers[currentIndex]) {
+                const next = timers[currentIndex + 1];
+                document.getElementById('next-label').textContent = next ? `Next Up: ${next.name}` : "Final Stage";
             }
+        }
 
-            // No guard check - always start the timer
-            // This ensures advanceTask() can always start the next timer
+        function updateTimer(index, field, value) {
+            timers[index][field] = field === 'seconds' ? Math.max(0, parseInt(value) || 0) : value;
+            if (!timerInterval) syncDisplay();
+        }
 
-            // Force-resume AudioContext on every start
-            if (ctx.state === 'suspended') {
-                ctx.resume().catch(e => console.error('AudioContext resume error:', e));
+        function addTimerRow() {
+            timers.push({ name: `Stage ${timers.length + 1}`, seconds: 30 });
+            render();
+        }
+
+        function removeTimer(index) {
+            timers.splice(index, 1);
+            if (currentIndex >= timers.length) currentIndex = Math.max(0, timers.length - 1);
+            render();
+            syncDisplay();
+        }
+
+        function syncDisplay() {
+            if (timers[currentIndex]) {
+                timeLeft = timers[currentIndex].seconds;
+                updateBigDisplay();
+                document.getElementById('status-label').textContent = timers[currentIndex].name;
             }
+        }
 
-            isPaused = false;
-            updatePlayBtnUI();
-            endTime = Date.now() + (timerSeconds * 1000);
-            activeTimer = setInterval(timerTick, 500);
-            console.log('Timer started, endTime:', endTime);
+        function updateBigDisplay() {
+            const m = Math.floor(timeLeft / 60);
+            const s = timeLeft % 60;
+            document.getElementById('timer-display').textContent = 
+                `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
 
-            // Request wake lock to keep screen/CPU alive on mobile
-            requestWakeLock();
-
-            // Start silent audio keep-alive for Android
-            startKeepAliveAudio();
-
-            // Set up Media Session API for Android - prevents background throttling
-            updateMediaSession();
-        };
-
-        const pauseTimer = () => {
-            if (isPaused) return;
-            isPaused = true;
-            clearInterval(activeTimer);
-            updatePlayBtnUI();
-            stopKeepAliveAudio();
-            clearMediaSession();
-        };
-
-        const timerTick = () => {
-            const now = Date.now();
-
-            if (now >= endTime) {
-                clearInterval(activeTimer);
-                activeTimer = null;
-                timerSeconds = 0;
-                updateTimerUI();
-
-                // Critical: Mark as paused BEFORE advancing
-                isPaused = true;
-                updatePlayBtnUI();
-
-                // Advance to next task with delay for mobile
-                setTimeout(() => advanceTask(), 100);
-                return;
-            }
-
-            timerSeconds = Math.ceil((endTime - now) / 1000);
-            updateTimerUI();
-            saveSession();
-        };
-
-        const advanceTask = () => {
-            console.log('advanceTask called, currentTaskIdx:', currentTaskIdx);
-
-            // Ensure clean state
-            if (activeTimer) {
-                clearInterval(activeTimer);
-                activeTimer = null;
-            }
-
-            currentTaskIdx++;
-
-            if (currentTaskIdx < currentCircuit.tasks.length) {
-                console.log('Moving to next task:', currentCircuit.tasks[currentTaskIdx].name);
-
-                // Beep and notify FIRST
-                playBeepSafe();
-                vibrate([200, 100, 200]);
-                notify("Stage Complete", `Up next: ${currentCircuit.tasks[currentTaskIdx].name}`);
-
-                // Setup the new task
-                setupTask(currentTaskIdx);
-
-                // Auto-start the next timer after brief delay
-                setTimeout(() => {
-                    console.log('Auto-starting next task');
-                    startTimer();
-                }, 200);
-                return;
-            }
-
-            if (isLooping) {
-                currentTaskIdx = 0;
-                playBeepSafe();
-                notify("Circuit Restarting", "Loop mode active");
-                setupTask(0);
-                setTimeout(() => startTimer(), 200);
-                return;
-            }
-
-            finishCircuit();
-        };
-
-        const toggleTimer = () => {
-            vibrate([50]);
-            // Resume AudioContext on first user gesture (required for mobile)
-            if (ctx.state === 'suspended') {
-                ctx.resume().then(() => {
-                    console.log('AudioContext resumed successfully');
-                    isPaused ? startTimer() : pauseTimer();
-                }).catch(e => {
-                    console.error('AudioContext resume failed:', e);
-                    // Continue anyway
-                    isPaused ? startTimer() : pauseTimer();
-                });
-            } else {
-                isPaused ? startTimer() : pauseTimer();
-            }
-        };
-
-        const stopTimer = () => {
-            clearInterval(activeTimer);
-            isPaused = true;
-            endTime = null;
-            updatePlayBtnUI();
-            localStorage.removeItem("activeSession");
-            releaseWakeLock();
-            stopKeepAliveAudio();
-            clearMediaSession();
-            navigate('home');
-        };
-
-        const skipTask = () => {
-            pauseTimer();
-            vibrate([50, 30, 50]);
-            advanceTask();
-        };
-
-        const toggleLoop = () => {
-            isLooping = !isLooping;
-            const btn = document.getElementById('loop-btn');
-            if (isLooping) {
-                btn.classList.remove('text-white/40');
-                btn.classList.add('neon-text-cyan');
-            } else {
-                btn.classList.add('text-white/40');
-                btn.classList.remove('neon-text-cyan');
-            }
-        };
-
-        const moveTask = (idx, dir) => {
-            if (idx + dir < 0 || idx + dir >= currentCircuit.tasks.length) return;
-            const task = currentCircuit.tasks.splice(idx, 1)[0];
-            currentCircuit.tasks.splice(idx + dir, 0, task);
-            renderTasks();
-        };
-
-        const saveSession = () => {
-            if (currentCircuit) {
-                const session = {
-                    circuitId: currentCircuit.id,
-                    taskIdx: currentTaskIdx,
-                    remaining: timerSeconds,
-                    isPaused,
-                    isLooping,
-                    endTime: !isPaused ? endTime : null
-                };
-                localStorage.setItem("activeSession", JSON.stringify(session));
-            }
-        };
-
-        const restoreSession = () => {
-            const data = localStorage.getItem("activeSession");
-            if (!data) return;
-            const session = JSON.parse(data);
-            const circuit = circuits.find(c => c.id === session.circuitId);
-            if (!circuit) return;
-
-            if (confirm("Resume your last circuit?")) {
-                currentCircuit = circuit;
-                currentTaskIdx = session.taskIdx;
-                isLooping = session.isLooping;
-                if (isLooping) toggleLoop(); // Update UI
-
-                navigate('timer');
-                const task = currentCircuit.tasks[currentTaskIdx];
-                totalTaskSeconds = task.duration;
-
-                if (session.endTime && !session.isPaused) {
-                    timerSeconds = Math.max(0, Math.ceil((session.endTime - Date.now()) / 1000));
-                    endTime = session.endTime;
-                    if (timerSeconds > 0) {
-                        isPaused = false;
-                        updatePlayBtnUI();
-                        toggleTimer(); // Re-trigger the interval
-                    } else {
-                        // Task finished while away
-                        currentTaskIdx++;
-                        setupTask(currentTaskIdx);
-                    }
-                } else {
-                    timerSeconds = session.remaining;
-                    updateTimerUI();
-                }
-            } else {
-                localStorage.removeItem("activeSession");
-            }
-        };
-
-        const notify = (title, body) => {
-            if (Notification.permission === 'granted') {
-                new Notification(title, { body, icon: '/icons/icon-512.png' });
-            }
-        };
-
-        const vibrate = (pattern) => {
-            if ("vibrate" in navigator) navigator.vibrate(pattern);
-        };
-
-        const updateTimerUI = () => {
-            document.getElementById('timer-display').innerText = formatTime(timerSeconds);
-            const progress = document.getElementById('timer-progress');
-            const radius = 45; // percentage
-            const circumference = 2 * Math.PI * radius; // This is illustrative, dasharray/offset use pixels or svg units
-            // We use a fixed 1000 for dasharray in HTML and calculate relative offset
-            const offset = 1000 - (1000 * (timerSeconds / totalTaskSeconds));
-            progress.style.strokeDashoffset = offset;
-        };
-
-        const updatePlayBtnUI = () => {
-            const btn = document.getElementById('timer-ctrl-btn');
-            btn.innerHTML = isPaused ? '<i class="fas fa-play"></i>' : '<i class="fas fa-pause"></i>';
-            if (!isPaused) btn.classList.add('timer-active');
-            else btn.classList.remove('timer-active');
-        };
-
-        const finishCircuit = () => {
-            notify("Circuit Finished!", "Excellent work.");
-            vibrate([500, 200, 500]);
-            releaseWakeLock();
-            stopKeepAliveAudio();
-            clearMediaSession();
-            document.getElementById('current-task-name').innerText = "DONE!";
-            document.getElementById('timer-display').innerText = "00:00";
-            localStorage.removeItem("activeSession");
-            setTimeout(() => navigate('home'), 2000);
-        };
-
-        const formatTime = (s) => {
-            const hrs = Math.floor(s / 3600);
-            const mins = Math.floor((s % 3600) / 60);
-            const secs = s % 60;
-            if (hrs > 0) return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        };
-
-        const playBeep = () => {
+        function beep(freq = 880) {
             try {
-                // Resume context if suspended (mobile requirement)
-                if (ctx.state === 'suspended') {
-                    ctx.resume().catch(() => { });
-                }
-                const osc = ctx.createOscillator();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, ctx.currentTime);
-                osc.connect(ctx.destination);
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
                 osc.start();
-                osc.stop(ctx.currentTime + 0.3);
-            } catch (e) {
-                console.error('playBeep error:', e);
-            }
-        };
+                osc.stop(audioCtx.currentTime + 0.4);
+            } catch(e) {}
+        }
 
-        // Safe beep with retry logic for mobile
-        const playBeepSafe = async (retries = 3) => {
-            for (let i = 0; i < retries; i++) {
-                try {
-                    // Ensure AudioContext is running
-                    if (ctx.state === 'suspended') {
-                        await ctx.resume();
-                    }
+        function toggleMain() {
+            if (timerInterval) pause(); else start();
+        }
 
-                    // Create oscillator with gain for better volume control
-                    const osc = ctx.createOscillator();
-                    const gainNode = ctx.createGain();
-                    gainNode.gain.value = 0.5;
+        function start() {
+            if (timers.length === 0) return;
+            if (timeLeft <= 0) syncDisplay();
+            
+            document.getElementById('mainBtn').textContent = "PAUSE";
+            document.getElementById('mainBtn').style.background = "#ff00ff"; // Magenta for pause
+            document.getElementById('mainBtn').style.boxShadow = "0 0 20px rgba(255, 0, 255, 0.3)";
+            document.getElementById('timer-display').classList.add('timer-running');
 
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(880, ctx.currentTime);
-                    osc.connect(gainNode);
-                    gainNode.connect(ctx.destination);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.3);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateBigDisplay();
 
-                    console.log('Beep played successfully');
-                    return; // Success, exit
-                } catch (e) {
-                    console.error(`playBeepSafe attempt ${i + 1} failed:`, e);
-                    if (i < retries - 1) {
-                        // Wait a bit before retry
-                        await new Promise(r => setTimeout(r, 50));
+                if (timeLeft <= 0) {
+                    currentIndex++;
+                    if (currentIndex < timers.length) {
+                        beep(880);
+                        syncDisplay();
+                        render();
+                    } else {
+                        finish();
                     }
                 }
-            }
-            console.warn('All beep attempts failed');
-        };
+            }, 1000);
+            render();
+        }
 
-        // Wake Lock API - keeps screen/CPU alive on mobile
-        const requestWakeLock = async () => {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake Lock active!');
+        function pause() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            document.getElementById('mainBtn').textContent = "RESUME";
+            document.getElementById('mainBtn').style.background = "var(--neon-cyan)";
+            document.getElementById('mainBtn').style.boxShadow = "0 0 20px rgba(0, 243, 255, 0.3)";
+            document.getElementById('timer-display').classList.remove('timer-running');
+            render();
+        }
 
-                    // Re-request wake lock if released (e.g., tab switch)
-                    wakeLock.addEventListener('release', () => {
-                        console.log('Wake Lock released');
-                    });
-                }
-            } catch (err) {
-                console.error(`Wake Lock error: ${err.name}, ${err.message}`);
-            }
-        };
+        function finish() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            beep(440);
+            document.getElementById('mainBtn').textContent = "START CIRCUIT";
+            document.getElementById('mainBtn').style.background = "var(--neon-cyan)";
+            document.getElementById('status-label').textContent = "FINISHED";
+            document.getElementById('timer-display').classList.remove('timer-running');
+            currentIndex = 0;
+            render();
+        }
 
-        // Release wake lock when timer stops
-        const releaseWakeLock = () => {
-            if (wakeLock !== null) {
-                wakeLock.release();
-                wakeLock = null;
-            }
-        };
+        function resetAll() {
+            pause();
+            currentIndex = 0;
+            syncDisplay();
+            document.getElementById('status-label').textContent = "READY";
+            render();
+        }
 
-        // Media Session API - tells Android that "media" is playing
-        // This prevents aggressive background throttling
-        const updateMediaSession = () => {
-            if ('mediaSession' in navigator && currentCircuit) {
-                const task = currentCircuit.tasks[currentTaskIdx];
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: task ? task.name : 'Timer',
-                    artist: 'Aether Timer',
-                    album: currentCircuit.name || 'Workout in Progress',
-                    artwork: [{ src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' }]
-                });
-                navigator.mediaSession.playbackState = 'playing';
-            }
-        };
-
-        const clearMediaSession = () => {
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = 'none';
-            }
-        };
-
-        // Silent audio keep-alive - prevents Android from sleeping the tab
-        const startKeepAliveAudio = () => {
-            if (keepAliveAudio) return; // Already running
-
-            try {
-                // Resume context first if needed
-                if (ctx.state === 'suspended') {
-                    ctx.resume().catch(() => { });
-                }
-
-                // Create a silent oscillator that runs continuously
-                keepAliveAudio = ctx.createOscillator();
-                const gainNode = ctx.createGain();
-                gainNode.gain.value = 0.001; // Nearly silent
-                keepAliveAudio.connect(gainNode);
-                gainNode.connect(ctx.destination);
-                keepAliveAudio.frequency.value = 1; // Very low frequency
-                keepAliveAudio.start();
-                console.log('Keep-alive audio started');
-            } catch (e) {
-                console.error('Keep-alive audio error:', e);
-            }
-        };
-
-        const stopKeepAliveAudio = () => {
-            if (keepAliveAudio) {
-                try {
-                    keepAliveAudio.stop();
-                } catch (e) { }
-                keepAliveAudio = null;
-                console.log('Keep-alive audio stopped');
-            }
-        };
-
-        window.onload = () => {
-            initDB();
-            populatePickers();
-
-            // Register SW
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js');
-            }
-
-            // Restore Session
-            setTimeout(restoreSession, 500); // Give DB time to load
-
-            // Offline Check
-            const updateOnlineStatus = () => {
-                const indicator = document.getElementById('offline-indicator');
-                indicator.style.display = navigator.onLine ? 'none' : 'block';
-            };
-            window.addEventListener('online', updateOnlineStatus);
-            window.addEventListener('offline', updateOnlineStatus);
-            updateOnlineStatus();
-
-            // Install Prompt
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredPrompt = e;
-                document.getElementById('install-prompt').classList.remove('hidden');
-            });
-
-            // Focus Recovery - re-acquire wake lock and catch up timer
-            document.addEventListener("visibilitychange", async () => {
-                if (!document.hidden) {
-                    // Re-acquire wake lock if it was lost
-                    if (!isPaused) {
-                        await requestWakeLock();
-                        updateMediaSession();
-                    }
-
-                    // Catch up timer display
-                    if (!isPaused && endTime) {
-                        if (Date.now() >= endTime) {
-                            // Task finished while away - advance immediately
-                            clearInterval(activeTimer);
-                            timerSeconds = 0;
-                            updateTimerUI();
-                            advanceTask();
-                        } else {
-                            // Just catch up the display
-                            timerSeconds = Math.ceil((endTime - Date.now()) / 1000);
-                            updateTimerUI();
-                        }
-                    }
-                }
-            });
-        };
-
-        const handleInstallClick = () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choice) => {
-                if (choice.outcome === 'accepted') {
-                    document.getElementById('install-prompt').classList.add('hidden');
-                }
-                deferredPrompt = null;
-            });
-        };
-
-        // Ensure progress bar circle math matches svg units
-        window.addEventListener('resize', updateTimerUI);
+        // Initialize
+        syncDisplay();
+        render();
     </script>
 </body>
-
 </html>
