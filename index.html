@@ -340,6 +340,7 @@
         let endTime = null;
         let deferredPrompt = null;
         let wakeLock = null;
+        let keepAliveAudio = null;
 
         // Persistent AudioContext for mobile compatibility
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -587,6 +588,12 @@
 
             // Request wake lock to keep screen/CPU alive on mobile
             requestWakeLock();
+
+            // Start silent audio keep-alive for Android
+            startKeepAliveAudio();
+
+            // Set up Media Session API for Android - prevents background throttling
+            updateMediaSession();
         };
 
         const pauseTimer = () => {
@@ -594,6 +601,8 @@
             isPaused = true;
             clearInterval(activeTimer);
             updatePlayBtnUI();
+            stopKeepAliveAudio();
+            clearMediaSession();
         };
 
         const timerTick = () => {
@@ -621,23 +630,22 @@
             if (currentTaskIdx < currentCircuit.tasks.length) {
                 notify("Stage Complete", `Up next: ${currentCircuit.tasks[currentTaskIdx].name}`);
                 vibrate([200, 100, 200]);
-                // Small delay to ensure mobile UI updates before next interval starts
-                setTimeout(() => {
-                    setupTask(currentTaskIdx);
-                    startTimer();
-                    playBeep();
-                }, 100);
+                playBeep();
+                // Run synchronously - no setTimeout gap for Android to throttle
+                setupTask(currentTaskIdx);
+                // Force immediate timer start without pause state
+                isPaused = true; // Reset so startTimer works
+                startTimer();
                 return;
             }
 
             if (isLooping) {
                 currentTaskIdx = 0;
                 notify("Circuit Restarting", "Loop mode active");
-                // Small delay for mobile UI
-                setTimeout(() => {
-                    setupTask(0);
-                    startTimer();
-                }, 100);
+                playBeep();
+                setupTask(0);
+                isPaused = true;
+                startTimer();
                 return;
             }
 
@@ -659,7 +667,9 @@
             endTime = null;
             updatePlayBtnUI();
             localStorage.removeItem("activeSession");
-            releaseWakeLock(); // Release wake lock when stopping
+            releaseWakeLock();
+            stopKeepAliveAudio();
+            clearMediaSession();
             navigate('home');
         };
 
@@ -770,7 +780,9 @@
         const finishCircuit = () => {
             notify("Circuit Finished!", "Excellent work.");
             vibrate([500, 200, 500]);
-            releaseWakeLock(); // Release wake lock when finished
+            releaseWakeLock();
+            stopKeepAliveAudio();
+            clearMediaSession();
             document.getElementById('current-task-name').innerText = "DONE!";
             document.getElementById('timer-display').innerText = "00:00";
             localStorage.removeItem("activeSession");
@@ -825,6 +837,56 @@
             }
         };
 
+        // Media Session API - tells Android that "media" is playing
+        // This prevents aggressive background throttling
+        const updateMediaSession = () => {
+            if ('mediaSession' in navigator && currentCircuit) {
+                const task = currentCircuit.tasks[currentTaskIdx];
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: task ? task.name : 'Timer',
+                    artist: 'Aether Timer',
+                    album: currentCircuit.name || 'Workout in Progress',
+                    artwork: [{ src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' }]
+                });
+                navigator.mediaSession.playbackState = 'playing';
+            }
+        };
+
+        const clearMediaSession = () => {
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = 'none';
+            }
+        };
+
+        // Silent audio keep-alive - prevents Android from sleeping the tab
+        const startKeepAliveAudio = () => {
+            if (keepAliveAudio) return; // Already running
+
+            try {
+                // Create a silent oscillator that runs continuously
+                keepAliveAudio = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                gainNode.gain.value = 0.001; // Nearly silent
+                keepAliveAudio.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                keepAliveAudio.frequency.value = 1; // Very low frequency
+                keepAliveAudio.start();
+                console.log('Keep-alive audio started');
+            } catch (e) {
+                console.error('Keep-alive audio error:', e);
+            }
+        };
+
+        const stopKeepAliveAudio = () => {
+            if (keepAliveAudio) {
+                try {
+                    keepAliveAudio.stop();
+                } catch (e) { }
+                keepAliveAudio = null;
+                console.log('Keep-alive audio stopped');
+            }
+        };
+
         window.onload = () => {
             initDB();
             populatePickers();
@@ -853,18 +915,28 @@
                 document.getElementById('install-prompt').classList.remove('hidden');
             });
 
-            // Focus Recovery
-            document.addEventListener("visibilitychange", () => {
-                if (!document.hidden && !isPaused && endTime) {
-                    if (Date.now() >= endTime) {
-                        pauseTimer();
-                        timerSeconds = 0;
-                        updateTimerUI();
-                        advanceTask();
-                    } else {
-                        // Just catch up the display
-                        timerSeconds = Math.ceil((endTime - Date.now()) / 1000);
-                        updateTimerUI();
+            // Focus Recovery - re-acquire wake lock and catch up timer
+            document.addEventListener("visibilitychange", async () => {
+                if (!document.hidden) {
+                    // Re-acquire wake lock if it was lost
+                    if (!isPaused) {
+                        await requestWakeLock();
+                        updateMediaSession();
+                    }
+
+                    // Catch up timer display
+                    if (!isPaused && endTime) {
+                        if (Date.now() >= endTime) {
+                            // Task finished while away - advance immediately
+                            clearInterval(activeTimer);
+                            timerSeconds = 0;
+                            updateTimerUI();
+                            advanceTask();
+                        } else {
+                            // Just catch up the display
+                            timerSeconds = Math.ceil((endTime - Date.now()) / 1000);
+                            updateTimerUI();
+                        }
                     }
                 }
             });
