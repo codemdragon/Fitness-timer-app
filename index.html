@@ -10,6 +10,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
 
@@ -27,7 +29,9 @@
             touch-action: manipulation;
         }
 
-        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
 
         .glass-panel {
             background: var(--glass);
@@ -56,7 +60,9 @@
             -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
         }
 
-        .picker-container::-webkit-scrollbar { display: none; }
+        .picker-container::-webkit-scrollbar {
+            display: none;
+        }
 
         .picker-item {
             height: 50px;
@@ -77,12 +83,25 @@
         }
 
         @keyframes pulse {
-            0% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.05); opacity: 1; }
-            100% { transform: scale(1); opacity: 0.8; }
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
         }
 
-        .timer-active { animation: pulse 2s infinite ease-in-out; }
+        .timer-active {
+            animation: pulse 2s infinite ease-in-out;
+        }
 
         .page {
             transition: transform 0.3s ease-out, opacity 0.3s ease-out;
@@ -102,9 +121,27 @@
         }
 
         @media (orientation: landscape) {
-            .timer-layout { flex-direction: row !important; justify-content: center !important; align-items: center !important; height: 100% !important; padding-top: 0 !important; gap: 2rem !important; }
-            .timer-ring-container { width: 45vh !important; height: 45vh !important; max-width: 250px; max-height: 250px; }
-            .landscape-controls { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 0.5rem !important; }
+            .timer-layout {
+                flex-direction: row !important;
+                justify-content: center !important;
+                align-items: center !important;
+                height: 100% !important;
+                padding-top: 0 !important;
+                gap: 2rem !important;
+            }
+
+            .timer-ring-container {
+                width: 45vh !important;
+                height: 45vh !important;
+                max-width: 250px;
+                max-height: 250px;
+            }
+
+            .landscape-controls {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 0.5rem !important;
+            }
         }
     </style>
 </head>
@@ -112,9 +149,11 @@
 <body class="h-[100dvh] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
 
     <div class="relative w-full max-w-4xl h-full sm:max-h-[90vh] glass-panel overflow-hidden">
-        <header class="absolute top-0 left-0 w-full p-4 flex justify-between items-center border-b border-white/10 z-20 bg-dark-bg/80 backdrop-blur-md">
+        <header
+            class="absolute top-0 left-0 w-full p-4 flex justify-between items-center border-b border-white/10 z-20 bg-dark-bg/80 backdrop-blur-md">
             <h1 class="font-orbitron text-lg sm:text-xl neon-text-cyan tracking-widest">AETHER.IO</h1>
-            <button onclick="app.navigateTo('home')" id="home-btn" class="hidden text-white/50 hover:text-white px-3 py-1">
+            <button onclick="app.navigateTo('home')" id="home-btn"
+                class="hidden text-white/50 hover:text-white px-3 py-1">
                 <i class="fas fa-home text-lg"></i>
             </button>
         </header>
@@ -122,9 +161,14 @@
         <!-- HOME -->
         <div id="page-home" class="page p-6 pt-24">
             <div id="circuit-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto"></div>
-            <div class="mt-8 max-w-2xl mx-auto">
-                <button onclick="app.createCircuit()" class="w-full py-4 rounded-2xl border-2 border-dashed border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition">
+            <div class="mt-8 max-w-2xl mx-auto space-y-3">
+                <button onclick="app.createCircuit()"
+                    class="w-full py-4 rounded-2xl border-2 border-dashed border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition">
                     <i class="fas fa-plus mr-2"></i> NEW CIRCUIT
+                </button>
+                <button onclick="app.openScanner()"
+                    class="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition">
+                    <i class="fas fa-qrcode mr-2"></i> IMPORT VIA QR
                 </button>
             </div>
         </div>
@@ -132,14 +176,19 @@
         <!-- EDITOR -->
         <div id="page-editor" class="page p-6 pt-24 page-hidden">
             <div class="max-w-2xl mx-auto">
-                <input id="circuit-name-input" type="text" placeholder="Circuit Name" class="bg-transparent text-2xl font-bold border-b border-white/20 focus:border-cyan-400 outline-none w-full text-white mb-6">
+                <input id="circuit-name-input" type="text" placeholder="Circuit Name"
+                    class="bg-transparent text-2xl font-bold border-b border-white/20 focus:border-cyan-400 outline-none w-full text-white mb-6">
                 <div id="task-list" class="space-y-3 pb-24"></div>
             </div>
             <div class="fixed bottom-6 left-0 w-full px-6 flex flex-col items-center z-30">
                 <div class="w-full max-w-xl flex space-x-2 glass-panel p-2 border-white/20">
-                    <button onclick="app.openTaskModal('workout')" class="flex-1 py-3 neon-bg-cyan text-black font-bold rounded-xl text-xs uppercase">Workout</button>
-                    <button onclick="app.openTaskModal('break')" class="flex-1 py-3 bg-white/10 text-white font-bold rounded-xl text-xs border border-white/20 uppercase">Break</button>
-                    <button onclick="app.saveCircuit()" class="w-12 h-12 flex items-center justify-center bg-green-500 text-black rounded-xl"><i class="fas fa-save"></i></button>
+                    <button onclick="app.openTaskModal('workout')"
+                        class="flex-1 py-3 neon-bg-cyan text-black font-bold rounded-xl text-xs uppercase">Workout</button>
+                    <button onclick="app.openTaskModal('break')"
+                        class="flex-1 py-3 bg-white/10 text-white font-bold rounded-xl text-xs border border-white/20 uppercase">Break</button>
+                    <button onclick="app.saveCircuit()"
+                        class="w-12 h-12 flex items-center justify-center bg-green-500 text-black rounded-xl"><i
+                            class="fas fa-save"></i></button>
                 </div>
             </div>
         </div>
@@ -149,34 +198,47 @@
             <div class="timer-layout flex flex-col items-center justify-center flex-1 space-y-4">
                 <div class="text-center">
                     <h2 id="current-circuit-title" class="text-white/40 tracking-widest mb-1 uppercase text-sm">--</h2>
-                    <h1 id="current-task-name" class="text-3xl font-orbitron font-bold neon-text-cyan uppercase">READY</h1>
+                    <h1 id="current-task-name" class="text-3xl font-orbitron font-bold neon-text-cyan uppercase">READY
+                    </h1>
                     <div id="next-task-info" class="text-xs text-white/30 mt-2 uppercase">Next: --</div>
                 </div>
 
                 <div class="timer-ring-container relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center">
                     <svg class="w-full h-full -rotate-90">
-                        <circle cx="50%" cy="50%" r="45%" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="transparent" />
-                        <circle id="timer-progress" cx="50%" cy="50%" r="45%" stroke="var(--neon-cyan)" stroke-width="8" fill="transparent" stroke-dasharray="1000" stroke-dashoffset="0" stroke-linecap="round" />
+                        <circle cx="50%" cy="50%" r="45%" stroke="rgba(255,255,255,0.05)" stroke-width="8"
+                            fill="transparent" />
+                        <circle id="timer-progress" cx="50%" cy="50%" r="45%" stroke="var(--neon-cyan)" stroke-width="8"
+                            fill="transparent" stroke-dasharray="1000" stroke-dashoffset="0" stroke-linecap="round" />
                     </svg>
                     <span id="timer-display" class="absolute text-5xl font-orbitron font-bold text-white">00:00</span>
                 </div>
 
                 <div class="flex space-x-4 landscape:space-x-0 landscape-controls">
-                    <button id="timer-ctrl-btn" onclick="app.toggleTimer()" class="w-16 h-16 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-xl"><i class="fas fa-play"></i></button>
-                    <button onclick="app.stopTimer()" class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl border border-white/10"><i class="fas fa-stop"></i></button>
-                    <button onclick="app.skipTask()" class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl border border-white/10"><i class="fas fa-forward"></i></button>
-                    <button id="loop-btn" onclick="app.toggleLoop()" class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/40 text-xl border border-white/10"><i class="fas fa-redo"></i></button>
+                    <button id="timer-ctrl-btn" onclick="app.toggleTimer()"
+                        class="w-16 h-16 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-xl"><i
+                            class="fas fa-play"></i></button>
+                    <button onclick="app.stopTimer()"
+                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl border border-white/10"><i
+                            class="fas fa-stop"></i></button>
+                    <button onclick="app.skipTask()"
+                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl border border-white/10"><i
+                            class="fas fa-forward"></i></button>
+                    <button id="loop-btn" onclick="app.toggleLoop()"
+                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/40 text-xl border border-white/10"><i
+                            class="fas fa-redo"></i></button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- MODAL WITH WHEEL PICKER -->
-    <div id="task-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-end justify-center z-50 opacity-0 pointer-events-none transition-opacity">
+    <div id="task-modal"
+        class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-end justify-center z-50 opacity-0 pointer-events-none transition-opacity">
         <div class="w-full max-w-md glass-panel p-6 rounded-t-[40px] transform translate-y-full transition-transform">
             <h3 id="modal-title" class="text-xl font-bold mb-4 text-center text-white">Add Stage</h3>
-            <input id="modal-task-name" type="text" class="w-full bg-white/5 border border-white/10 p-3 rounded-xl mb-4 outline-none focus:border-cyan-400 text-white font-bold text-center">
-            
+            <input id="modal-task-name" type="text"
+                class="w-full bg-white/5 border border-white/10 p-3 rounded-xl mb-4 outline-none focus:border-cyan-400 text-white font-bold text-center">
+
             <div class="flex items-center justify-center mb-6 space-x-8 bg-black/20 rounded-3xl p-4">
                 <div class="flex flex-col items-center">
                     <span class="text-[10px] text-cyan-400 mb-1">MINUTES</span>
@@ -190,9 +252,39 @@
             </div>
 
             <div class="flex space-x-3">
-                <button onclick="app.closeTaskModal()" class="flex-1 py-3 rounded-xl bg-white/5 font-bold text-white">CANCEL</button>
-                <button onclick="app.confirmTask()" class="flex-1 py-3 rounded-xl neon-bg-cyan text-black font-bold">ADD STAGE</button>
+                <button onclick="app.closeTaskModal()"
+                    class="flex-1 py-3 rounded-xl bg-white/5 font-bold text-white">CANCEL</button>
+                <button onclick="app.confirmTask()" class="flex-1 py-3 rounded-xl neon-bg-cyan text-black font-bold">ADD
+                    STAGE</button>
             </div>
+        </div>
+    </div>
+
+    <!-- QR DISPLAY MODAL -->
+    <div id="qr-modal"
+        class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 opacity-0 pointer-events-none transition-opacity">
+        <div class="w-full max-w-xs glass-panel p-8 flex flex-col items-center text-center">
+            <h3 class="text-xl font-bold mb-2 text-white" id="qr-title">Share Circuit</h3>
+            <p class="text-white/40 text-xs mb-6">Scan this to import into Aether</p>
+            <div id="qr-container" class="bg-white p-4 rounded-2xl mb-6 shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                <canvas id="qr-canvas"></canvas>
+            </div>
+            <button onclick="app.closeQRModal()"
+                class="w-full py-3 rounded-xl bg-white/10 font-bold text-white">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- QR SCANNER MODAL -->
+    <div id="scanner-modal"
+        class="fixed inset-0 bg-black z-[60] flex flex-col opacity-0 pointer-events-none transition-opacity">
+        <div class="p-6 flex justify-between items-center bg-black/50 backdrop-blur-md">
+            <h3 class="text-white font-bold font-orbitron">SCAN QR CODE</h3>
+            <button onclick="app.closeScanner()" class="text-white/50 hover:text-white"><i
+                    class="fas fa-times text-xl"></i></button>
+        </div>
+        <div id="reader" class="flex-1 bg-black"></div>
+        <div class="p-8 text-center bg-black/80">
+            <p class="text-white/40 text-sm">Position the QR code within the frame</p>
         </div>
     </div>
 
@@ -219,8 +311,13 @@
                 circuitTitle: document.getElementById('current-circuit-title'),
                 loopBtn: document.getElementById('loop-btn'),
                 pickerM: document.getElementById('picker-m'),
-                pickerS: document.getElementById('picker-s')
+                pickerS: document.getElementById('picker-s'),
+                qrModal: document.getElementById('qr-modal'),
+                qrCanvas: document.getElementById('qr-canvas'),
+                qrTitle: document.getElementById('qr-title'),
+                scannerModal: document.getElementById('scanner-modal')
             };
+            let html5QrCode = null;
 
             // --- WHEEL PICKER LOGIC ---
             const setupPicker = (el, max) => {
@@ -293,6 +390,7 @@
                     div.innerHTML = `
                         <div><h3 class="font-bold text-white text-xl">${c.name}</h3><p class="text-cyan-400/50 text-xs font-orbitron">${c.tasks.length} STAGES • ${formatTime(totalSec)}</p></div>
                         <div class="flex space-x-2">
+                            <button onclick="event.stopPropagation(); app.shareCircuit('${c.id}')" class="text-white/40 hover:text-green-400 p-2"><i class="fas fa-share-nodes"></i></button>
                             <button onclick="event.stopPropagation(); app.editCircuit('${c.id}')" class="text-white/40 hover:text-cyan-400 p-2"><i class="fas fa-edit"></i></button>
                             <button onclick="event.stopPropagation(); app.deleteCircuit('${c.id}')" class="text-white/40 hover:text-red-400 p-2"><i class="fas fa-trash"></i></button>
                         </div>
@@ -306,10 +404,10 @@
                 els.taskList.innerHTML = '';
                 activeCircuit.tasks.forEach((t, i) => {
                     const div = document.createElement('div');
-                    div.className = `p-4 rounded-2xl flex justify-between items-center ${t.type==='workout'?'bg-cyan-500/10 border-cyan-500/20':'bg-white/5 border-white/10'} border mb-2`;
+                    div.className = `p-4 rounded-2xl flex justify-between items-center ${t.type === 'workout' ? 'bg-cyan-500/10 border-cyan-500/20' : 'bg-white/5 border-white/10'} border mb-2`;
                     div.innerHTML = `
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center ${t.type==='workout'?'bg-cyan-400 text-black':'bg-white/10 text-white'}"><i class="fas ${t.type==='workout'?'fa-dumbbell':'fa-mug-hot'}"></i></div>
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center ${t.type === 'workout' ? 'bg-cyan-400 text-black' : 'bg-white/10 text-white'}"><i class="fas ${t.type === 'workout' ? 'fa-dumbbell' : 'fa-mug-hot'}"></i></div>
                             <div><p class="font-bold text-white uppercase">${t.name}</p><p class="text-xs font-orbitron text-white/40">${formatTime(t.duration)}</p></div>
                         </div>
                         <div class="flex space-x-2">
@@ -329,7 +427,7 @@
 
             const loadTask = (index) => {
                 if (index >= activeCircuit.tasks.length) {
-                    if (isLooping) { activeTaskIndex = 0; loadTask(0); if(isTimerRunning) startTimer(); }
+                    if (isLooping) { activeTaskIndex = 0; loadTask(0); if (isTimerRunning) startTimer(); }
                     else { finishCircuit(); }
                     return;
                 }
@@ -339,7 +437,7 @@
                 els.currentTaskName.innerText = task.name;
                 els.circuitTitle.innerText = activeCircuit.name;
                 els.timerDisplay.innerText = formatTime(task.duration);
-                const next = activeCircuit.tasks[index+1];
+                const next = activeCircuit.tasks[index + 1];
                 els.nextTaskInfo.innerText = next ? `Next: ${next.name}` : (isLooping ? 'Next: Restart' : 'Next: Finish');
                 updateProgress(1);
             };
@@ -401,7 +499,7 @@
                 setTimeout(() => navigateTo('home'), 2000);
             };
 
-            const formatTime = (s) => `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`;
+            const formatTime = (s) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
 
             // Initialize Pickers
             setupPicker(els.pickerM, 60);
@@ -412,33 +510,111 @@
                 navigateTo,
                 createCircuit: () => { activeCircuit = { id: Date.now().toString(), name: '', tasks: [] }; renderEditor(); navigateTo('editor'); },
                 editCircuit: (id) => { activeCircuit = JSON.parse(JSON.stringify(circuits.find(c => c.id === id))); renderEditor(); navigateTo('editor'); },
-                deleteCircuit: (id) => { if(confirm('Delete?')) deleteFromDB(id); },
+                deleteCircuit: (id) => { if (confirm('Delete?')) deleteFromDB(id); },
                 saveCircuit: () => { activeCircuit.name = els.circuitNameInput.value || 'New Circuit'; saveToDB(activeCircuit); navigateTo('home'); },
-                moveTask: (i, d) => { if(i+d < 0 || i+d >= activeCircuit.tasks.length) return; [activeCircuit.tasks[i], activeCircuit.tasks[i+d]] = [activeCircuit.tasks[i+d], activeCircuit.tasks[i]]; renderEditor(); },
-                removeTask: (i) => { activeCircuit.tasks.splice(i,1); renderEditor(); },
-                openTaskModal: (type) => { 
-                    app.mType = type; 
-                    els.modalName.value = type==='workout'?'Pushups':'Rest';
+                moveTask: (i, d) => { if (i + d < 0 || i + d >= activeCircuit.tasks.length) return;[activeCircuit.tasks[i], activeCircuit.tasks[i + d]] = [activeCircuit.tasks[i + d], activeCircuit.tasks[i]]; renderEditor(); },
+                removeTask: (i) => { activeCircuit.tasks.splice(i, 1); renderEditor(); },
+                openTaskModal: (type) => {
+                    app.mType = type;
+                    els.modalName.value = type === 'workout' ? 'Pushups' : 'Rest';
                     setPickerValue(els.pickerM, 0); setPickerValue(els.pickerS, 30);
-                    els.modal.classList.remove('opacity-0','pointer-events-none'); 
-                    els.modal.firstElementChild.classList.remove('translate-y-full'); 
+                    els.modal.classList.remove('opacity-0', 'pointer-events-none');
+                    els.modal.firstElementChild.classList.remove('translate-y-full');
                 },
-                closeTaskModal: () => { els.modal.classList.add('opacity-0','pointer-events-none'); els.modal.firstElementChild.classList.add('translate-y-full'); },
-                confirmTask: () => { 
-                    const d = (getPickerValue(els.pickerM)*60) + getPickerValue(els.pickerS); 
-                    if(d>0) activeCircuit.tasks.push({ name: els.modalName.value, duration: d, type: app.mType }); 
-                    renderEditor(); app.closeTaskModal(); 
+                closeTaskModal: () => { els.modal.classList.add('opacity-0', 'pointer-events-none'); els.modal.firstElementChild.classList.add('translate-y-full'); },
+                confirmTask: () => {
+                    const d = (getPickerValue(els.pickerM) * 60) + getPickerValue(els.pickerS);
+                    if (d > 0) activeCircuit.tasks.push({ name: els.modalName.value, duration: d, type: app.mType });
+                    renderEditor(); app.closeTaskModal();
                 },
                 toggleTimer: () => isTimerRunning ? pauseTimer() : startTimer(),
                 stopTimer: () => { pauseTimer(); setupTimer(); navigateTo('home'); },
-                skipTask: () => { 
-                    activeTaskIndex++; 
-                    loadTask(activeTaskIndex); 
-                    if(isTimerRunning) endTime = Date.now() + (timeLeftWhenPaused * 1000); 
+                skipTask: () => {
+                    activeTaskIndex++;
+                    loadTask(activeTaskIndex);
+                    if (isTimerRunning) endTime = Date.now() + (timeLeftWhenPaused * 1000);
                 },
-                toggleLoop: () => { isLooping = !isLooping; updateControls(); }
+                toggleLoop: () => { isLooping = !isLooping; updateControls(); },
+
+                // --- QR LOGIC ---
+                shareCircuit: (id) => {
+                    const c = circuits.find(circuit => circuit.id === id);
+                    if (!c) return;
+
+                    const payload = {
+                        v: 1,
+                        n: c.name,
+                        t: c.tasks.map(t => ({
+                            n: t.name,
+                            d: t.duration,
+                            ty: t.type
+                        }))
+                    };
+
+                    const data = JSON.stringify(payload);
+                    els.qrTitle.innerText = c.name;
+
+                    QRCode.toCanvas(els.qrCanvas, data, {
+                        width: 256,
+                        margin: 0,
+                        color: { dark: '#0a0b1e', light: '#ffffff' },
+                        errorCorrectionLevel: 'M'
+                    }, (err) => {
+                        if (err) alert('Failed to generate QR');
+                        else {
+                            els.qrModal.classList.remove('opacity-0', 'pointer-events-none');
+                        }
+                    });
+                },
+                closeQRModal: () => {
+                    els.qrModal.classList.add('opacity-0', 'pointer-events-none');
+                },
+                openScanner: async () => {
+                    els.scannerModal.classList.remove('opacity-0', 'pointer-events-none');
+                    html5QrCode = new Html5Qrcode("reader");
+                    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+                    try {
+                        await html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                            app.importCircuitData(decodedText);
+                            app.closeScanner();
+                        });
+                    } catch (err) {
+                        alert("Camera error: " + err);
+                        app.closeScanner();
+                    }
+                },
+                closeScanner: async () => {
+                    if (html5QrCode) {
+                        try { await html5QrCode.stop(); } catch (e) { }
+                        html5QrCode = null;
+                    }
+                    els.scannerModal.classList.add('opacity-0', 'pointer-events-none');
+                },
+                importCircuitData: (data) => {
+                    try {
+                        const obj = JSON.parse(data);
+                        if (obj.v !== 1 || !obj.n || !Array.isArray(obj.t)) throw new Error("Invalid format");
+
+                        const newCircuit = {
+                            id: Date.now().toString(),
+                            name: obj.n,
+                            tasks: obj.t.map(t => ({
+                                name: t.n,
+                                duration: Math.min(Math.max(t.d, 1), 7200), // Clamp 1s - 2h
+                                type: (t.ty === 'workout' || t.ty === 'break') ? t.ty : 'workout'
+                            }))
+                        };
+
+                        saveToDB(newCircuit);
+                        alert(`Imported: ${newCircuit.name}`);
+                    } catch (e) {
+                        alert("Failed to parse QR data: " + e.message);
+                    }
+                }
             };
         })();
     </script>
 </body>
+
 </html>
