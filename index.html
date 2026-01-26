@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
@@ -266,8 +266,9 @@
         <div class="w-full max-w-xs glass-panel p-8 flex flex-col items-center text-center">
             <h3 class="text-xl font-bold mb-2 text-white" id="qr-title">Share Circuit</h3>
             <p class="text-white/40 text-xs mb-6">Scan this to import into Aether</p>
-            <div id="qr-container" class="bg-white p-4 rounded-2xl mb-6 shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-                <canvas id="qr-canvas"></canvas>
+            <div id="qr-container"
+                class="bg-white p-4 rounded-2xl mb-6 shadow-[0_0_30px_rgba(255,255,255,0.1)] overflow-hidden">
+                <div id="qr-code"></div>
             </div>
             <button onclick="app.closeQRModal()"
                 class="w-full py-3 rounded-xl bg-white/10 font-bold text-white">CLOSE</button>
@@ -313,7 +314,7 @@
                 pickerM: document.getElementById('picker-m'),
                 pickerS: document.getElementById('picker-s'),
                 qrModal: document.getElementById('qr-modal'),
-                qrCanvas: document.getElementById('qr-canvas'),
+                qrCode: document.getElementById('qr-code'),
                 qrTitle: document.getElementById('qr-title'),
                 scannerModal: document.getElementById('scanner-modal')
             };
@@ -557,23 +558,28 @@
                     const data = JSON.stringify(payload);
                     els.qrTitle.innerText = c.name;
 
-                    const qrLib = window.QRCode || window.qrcode;
+                    const qrLib = window.QRCode;
                     if (!qrLib) {
-                        alert("QR Library not loaded!");
+                        alert("QR Library not loaded! Please check your internet connection.");
                         return;
                     }
 
-                    qrLib.toCanvas(els.qrCanvas, data, {
-                        width: 256,
-                        margin: 0,
-                        color: { dark: '#0a0b1e', light: '#ffffff' },
-                        errorCorrectionLevel: 'M'
-                    }, (err) => {
-                        if (err) alert('Failed to generate QR: ' + err.message);
-                        else {
-                            els.qrModal.classList.remove('opacity-0', 'pointer-events-none');
-                        }
-                    });
+                    // Clear previous QR
+                    els.qrCode.innerHTML = '';
+
+                    try {
+                        new qrLib(els.qrCode, {
+                            text: data,
+                            width: 256,
+                            height: 256,
+                            colorDark: "#0a0b1e",
+                            colorLight: "#ffffff",
+                            correctLevel: qrLib.CorrectLevel.M
+                        });
+                        els.qrModal.classList.remove('opacity-0', 'pointer-events-none');
+                    } catch (e) {
+                        alert("Failed to generate QR: " + e.message);
+                    }
                 },
                 closeQRModal: () => {
                     els.qrModal.classList.add('opacity-0', 'pointer-events-none');
