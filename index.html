@@ -270,8 +270,13 @@
                 class="bg-white p-4 rounded-2xl mb-6 shadow-[0_0_30px_rgba(255,255,255,0.1)] overflow-hidden">
                 <div id="qr-code"></div>
             </div>
-            <button onclick="app.closeQRModal()"
-                class="w-full py-3 rounded-xl bg-white/10 font-bold text-white">CLOSE</button>
+            <div class="w-full space-y-2">
+                <button onclick="app.shareLinkOnly()"
+                    class="w-full py-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 font-bold text-cyan-400">SHARE
+                    LINK</button>
+                <button onclick="app.closeQRModal()"
+                    class="w-full py-3 rounded-xl bg-white/10 font-bold text-white">CLOSE</button>
+            </div>
         </div>
     </div>
 
@@ -318,7 +323,7 @@
                 qrTitle: document.getElementById('qr-title'),
                 scannerModal: document.getElementById('scanner-modal')
             };
-            let html5QrCode = null;
+            let html5QrCode = null, lastShareUrl = '';
 
             // --- WHEEL PICKER LOGIC ---
             const setupPicker = (el, max) => {
@@ -558,6 +563,25 @@
                     const data = JSON.stringify(payload);
                     els.qrTitle.innerText = c.name;
 
+                    // Generate deep-link URL
+                    const encoded = btoa(encodeURIComponent(data));
+                    lastShareUrl = `${window.location.origin}${window.location.pathname}?import=${encoded}`;
+
+                    // Try native share first
+                    if (navigator.share) {
+                        navigator.share({
+                            title: `Aether Circuit: ${c.name}`,
+                            text: `Try my "${c.name}" circuit on Aether Timer`,
+                            url: lastShareUrl
+                        }).catch(err => {
+                            console.log("Share failed or cancelled", err);
+                            app.showQR(data);
+                        });
+                    } else {
+                        app.showQR(data);
+                    }
+                },
+                showQR: (data) => {
                     const qrLib = window.QRCode;
                     if (!qrLib) {
                         alert("QR Library not loaded! Please check your internet connection.");
@@ -579,6 +603,16 @@
                         els.qrModal.classList.remove('opacity-0', 'pointer-events-none');
                     } catch (e) {
                         alert("Failed to generate QR: " + e.message);
+                    }
+                },
+                shareLinkOnly: () => {
+                    if (navigator.share) {
+                        navigator.share({
+                            url: lastShareUrl
+                        }).catch(() => { });
+                    } else {
+                        navigator.clipboard.writeText(lastShareUrl);
+                        alert("Share link copied to clipboard!");
                     }
                 },
                 closeQRModal: () => {
@@ -628,6 +662,27 @@
                     }
                 }
             };
+        })();
+
+        // --- AUTO-IMPORT ON STARTUP ---
+        (() => {
+            const params = new URLSearchParams(window.location.search);
+            const data = params.get("import");
+            if (!data) return;
+
+            // Wait a moment for DB to initialize
+            setTimeout(() => {
+                try {
+                    const json = decodeURIComponent(atob(data));
+                    app.importCircuitData(json);
+
+                    // Clean URL
+                    history.replaceState({}, document.title, window.location.pathname);
+                } catch (e) {
+                    console.error("Link import failed", e);
+                    alert("Invalid share link or data corrupted");
+                }
+            }, 500);
         })();
     </script>
 </body>
