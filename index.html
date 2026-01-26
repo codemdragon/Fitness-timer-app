@@ -339,6 +339,10 @@
         let isLooping = false;
         let endTime = null;
         let deferredPrompt = null;
+        let wakeLock = null;
+
+        // Persistent AudioContext for mobile compatibility
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
         // IndexedDB Logic
         const initDB = () => {
@@ -580,6 +584,9 @@
             updatePlayBtnUI();
             endTime = Date.now() + (timerSeconds * 1000);
             activeTimer = setInterval(timerTick, 500);
+
+            // Request wake lock to keep screen/CPU alive on mobile
+            requestWakeLock();
         };
 
         const pauseTimer = () => {
@@ -608,20 +615,29 @@
         const advanceTask = () => {
             currentTaskIdx++;
 
+            // Clear existing interval immediately
+            clearInterval(activeTimer);
+
             if (currentTaskIdx < currentCircuit.tasks.length) {
                 notify("Stage Complete", `Up next: ${currentCircuit.tasks[currentTaskIdx].name}`);
                 vibrate([200, 100, 200]);
-                playBeep();
-                setupTask(currentTaskIdx);
-                startTimer();
+                // Small delay to ensure mobile UI updates before next interval starts
+                setTimeout(() => {
+                    setupTask(currentTaskIdx);
+                    startTimer();
+                    playBeep();
+                }, 100);
                 return;
             }
 
             if (isLooping) {
                 currentTaskIdx = 0;
                 notify("Circuit Restarting", "Loop mode active");
-                setupTask(0);
-                startTimer();
+                // Small delay for mobile UI
+                setTimeout(() => {
+                    setupTask(0);
+                    startTimer();
+                }, 100);
                 return;
             }
 
@@ -630,6 +646,10 @@
 
         const toggleTimer = () => {
             vibrate([50]);
+            // Resume AudioContext on first user gesture (required for mobile)
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
             isPaused ? startTimer() : pauseTimer();
         };
 
@@ -639,6 +659,7 @@
             endTime = null;
             updatePlayBtnUI();
             localStorage.removeItem("activeSession");
+            releaseWakeLock(); // Release wake lock when stopping
             navigate('home');
         };
 
@@ -749,6 +770,7 @@
         const finishCircuit = () => {
             notify("Circuit Finished!", "Excellent work.");
             vibrate([500, 200, 500]);
+            releaseWakeLock(); // Release wake lock when finished
             document.getElementById('current-task-name').innerText = "DONE!";
             document.getElementById('timer-display').innerText = "00:00";
             localStorage.removeItem("activeSession");
@@ -765,7 +787,10 @@
 
         const playBeep = () => {
             try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                // Resume context if suspended (mobile requirement)
+                if (ctx.state === 'suspended') {
+                    ctx.resume();
+                }
                 const osc = ctx.createOscillator();
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(880, ctx.currentTime);
@@ -773,6 +798,31 @@
                 osc.start();
                 osc.stop(ctx.currentTime + 0.3);
             } catch (e) { }
+        };
+
+        // Wake Lock API - keeps screen/CPU alive on mobile
+        const requestWakeLock = async () => {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock active!');
+
+                    // Re-request wake lock if released (e.g., tab switch)
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Wake Lock released');
+                    });
+                }
+            } catch (err) {
+                console.error(`Wake Lock error: ${err.name}, ${err.message}`);
+            }
+        };
+
+        // Release wake lock when timer stops
+        const releaseWakeLock = () => {
+            if (wakeLock !== null) {
+                wakeLock.release();
+                wakeLock = null;
+            }
         };
 
         window.onload = () => {
