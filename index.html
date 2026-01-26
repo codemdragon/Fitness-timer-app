@@ -580,7 +580,21 @@
         };
 
         const startTimer = () => {
+            console.log('startTimer called, isPaused:', isPaused);
+
+            // Clear any existing timer before starting new one
+            if (activeTimer) {
+                clearInterval(activeTimer);
+                activeTimer = null;
+            }
+
             if (!isPaused) return;
+
+            // Force-resume AudioContext on every start
+            if (ctx.state === 'suspended') {
+                ctx.resume().catch(e => console.error('AudioContext resume error:', e));
+            }
+
             isPaused = false;
             updatePlayBtnUI();
             endTime = Date.now() + (timerSeconds * 1000);
@@ -610,19 +624,16 @@
 
             if (now >= endTime) {
                 clearInterval(activeTimer);
+                activeTimer = null;
                 timerSeconds = 0;
                 updateTimerUI();
-                // Use setTimeout(0) to break out of the interval callback
-                // This prevents mobile browsers from blocking on the sync call
-                setTimeout(() => {
-                    try {
-                        advanceTask();
-                    } catch (e) {
-                        console.error('advanceTask error:', e);
-                        // Fallback: try again after a delay
-                        setTimeout(advanceTask, 50);
-                    }
-                }, 0);
+
+                // Critical: Mark as paused BEFORE advancing
+                isPaused = true;
+                updatePlayBtnUI();
+
+                // Advance to next task with delay for mobile
+                setTimeout(() => advanceTask(), 100);
                 return;
             }
 
@@ -633,36 +644,40 @@
 
         const advanceTask = () => {
             console.log('advanceTask called, currentTaskIdx:', currentTaskIdx);
-            currentTaskIdx++;
 
-            // Clear existing interval immediately
-            clearInterval(activeTimer);
+            // Ensure clean state
+            if (activeTimer) {
+                clearInterval(activeTimer);
+                activeTimer = null;
+            }
+
+            currentTaskIdx++;
 
             if (currentTaskIdx < currentCircuit.tasks.length) {
                 console.log('Moving to next task:', currentCircuit.tasks[currentTaskIdx].name);
-                notify("Stage Complete", `Up next: ${currentCircuit.tasks[currentTaskIdx].name}`);
+
+                // Beep and notify FIRST
+                playBeepSafe();
                 vibrate([200, 100, 200]);
+                notify("Stage Complete", `Up next: ${currentCircuit.tasks[currentTaskIdx].name}`);
 
-                // Play beep in try-catch to prevent failures from blocking
-                try { playBeep(); } catch (e) { console.error('playBeep error:', e); }
-
-                // Setup next task
+                // Setup the new task
                 setupTask(currentTaskIdx);
 
-                // Force immediate timer start
-                isPaused = true;
-                startTimer();
-                console.log('Next timer started');
+                // Auto-start the next timer after brief delay
+                setTimeout(() => {
+                    console.log('Auto-starting next task');
+                    startTimer();
+                }, 200);
                 return;
             }
 
             if (isLooping) {
                 currentTaskIdx = 0;
+                playBeepSafe();
                 notify("Circuit Restarting", "Loop mode active");
-                try { playBeep(); } catch (e) { }
                 setupTask(0);
-                isPaused = true;
-                startTimer();
+                setTimeout(() => startTimer(), 200);
                 return;
             }
 
@@ -673,9 +688,17 @@
             vibrate([50]);
             // Resume AudioContext on first user gesture (required for mobile)
             if (ctx.state === 'suspended') {
-                ctx.resume();
+                ctx.resume().then(() => {
+                    console.log('AudioContext resumed successfully');
+                    isPaused ? startTimer() : pauseTimer();
+                }).catch(e => {
+                    console.error('AudioContext resume failed:', e);
+                    // Continue anyway
+                    isPaused ? startTimer() : pauseTimer();
+                });
+            } else {
+                isPaused ? startTimer() : pauseTimer();
             }
-            isPaused ? startTimer() : pauseTimer();
         };
 
         const stopTimer = () => {
@@ -829,6 +852,40 @@
             } catch (e) {
                 console.error('playBeep error:', e);
             }
+        };
+
+        // Safe beep with retry logic for mobile
+        const playBeepSafe = async (retries = 3) => {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    // Ensure AudioContext is running
+                    if (ctx.state === 'suspended') {
+                        await ctx.resume();
+                    }
+
+                    // Create oscillator with gain for better volume control
+                    const osc = ctx.createOscillator();
+                    const gainNode = ctx.createGain();
+                    gainNode.gain.value = 0.5;
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, ctx.currentTime);
+                    osc.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.3);
+
+                    console.log('Beep played successfully');
+                    return; // Success, exit
+                } catch (e) {
+                    console.error(`playBeepSafe attempt ${i + 1} failed:`, e);
+                    if (i < retries - 1) {
+                        // Wait a bit before retry
+                        await new Promise(r => setTimeout(r, 50));
+                    }
+                }
+            }
+            console.warn('All beep attempts failed');
         };
 
         // Wake Lock API - keeps screen/CPU alive on mobile
