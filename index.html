@@ -612,7 +612,17 @@
                 clearInterval(activeTimer);
                 timerSeconds = 0;
                 updateTimerUI();
-                advanceTask();
+                // Use setTimeout(0) to break out of the interval callback
+                // This prevents mobile browsers from blocking on the sync call
+                setTimeout(() => {
+                    try {
+                        advanceTask();
+                    } catch (e) {
+                        console.error('advanceTask error:', e);
+                        // Fallback: try again after a delay
+                        setTimeout(advanceTask, 50);
+                    }
+                }, 0);
                 return;
             }
 
@@ -622,27 +632,34 @@
         };
 
         const advanceTask = () => {
+            console.log('advanceTask called, currentTaskIdx:', currentTaskIdx);
             currentTaskIdx++;
 
             // Clear existing interval immediately
             clearInterval(activeTimer);
 
             if (currentTaskIdx < currentCircuit.tasks.length) {
+                console.log('Moving to next task:', currentCircuit.tasks[currentTaskIdx].name);
                 notify("Stage Complete", `Up next: ${currentCircuit.tasks[currentTaskIdx].name}`);
                 vibrate([200, 100, 200]);
-                playBeep();
-                // Run synchronously - no setTimeout gap for Android to throttle
+
+                // Play beep in try-catch to prevent failures from blocking
+                try { playBeep(); } catch (e) { console.error('playBeep error:', e); }
+
+                // Setup next task
                 setupTask(currentTaskIdx);
-                // Force immediate timer start without pause state
-                isPaused = true; // Reset so startTimer works
+
+                // Force immediate timer start
+                isPaused = true;
                 startTimer();
+                console.log('Next timer started');
                 return;
             }
 
             if (isLooping) {
                 currentTaskIdx = 0;
                 notify("Circuit Restarting", "Loop mode active");
-                playBeep();
+                try { playBeep(); } catch (e) { }
                 setupTask(0);
                 isPaused = true;
                 startTimer();
@@ -801,7 +818,7 @@
             try {
                 // Resume context if suspended (mobile requirement)
                 if (ctx.state === 'suspended') {
-                    ctx.resume();
+                    ctx.resume().catch(() => { });
                 }
                 const osc = ctx.createOscillator();
                 osc.type = 'sine';
@@ -809,7 +826,9 @@
                 osc.connect(ctx.destination);
                 osc.start();
                 osc.stop(ctx.currentTime + 0.3);
-            } catch (e) { }
+            } catch (e) {
+                console.error('playBeep error:', e);
+            }
         };
 
         // Wake Lock API - keeps screen/CPU alive on mobile
@@ -863,6 +882,11 @@
             if (keepAliveAudio) return; // Already running
 
             try {
+                // Resume context first if needed
+                if (ctx.state === 'suspended') {
+                    ctx.resume().catch(() => { });
+                }
+
                 // Create a silent oscillator that runs continuously
                 keepAliveAudio = ctx.createOscillator();
                 const gainNode = ctx.createGain();
