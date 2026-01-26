@@ -3,250 +3,361 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aether | Sequence Timer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Fixed Sequence Timer</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
-
         :root {
-            --neon-cyan: #00f3ff;
-            --dark-bg: #0a0b1e;
-            --glass: rgba(255, 255, 255, 0.05);
+            --bg: #000000;
+            --surface: #1c1c1e;
+            --primary: #0a84ff; /* Blue */
+            --active: #30d158;  /* Green */
+            --text: #ffffff;
+            --dim: #8e8e93;
         }
 
         body {
-            background-color: var(--dark-bg);
-            color: #e0e0e0;
-            font-family: 'Rajdhani', sans-serif;
-            touch-action: manipulation;
-            height: 100dvh;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Prevent scrolling the whole page */
+        }
+
+        /* Top Section: The Big Clock */
+        .clock-display {
+            flex: 1; /* Takes up available top space */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--bg);
+            border-bottom: 1px solid #333;
+            z-index: 10;
+        }
+
+        #timer-name {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--dim);
+            margin-bottom: 5px;
+        }
+
+        #timer-count {
+            font-size: 6rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums; /* Keeps numbers same width */
+            line-height: 1;
+        }
+
+        /* Middle Section: The Scrollable List */
+        .queue-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 100px; /* Space for buttons */
+        }
+
+        .timer-row {
             display: flex;
             align-items: center;
-            justify-content: center;
+            background: var(--surface);
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
         }
 
-        .font-orbitron { font-family: 'Orbitron', sans-serif; }
-
-        .glass-panel {
-            background: var(--glass);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        /* Highlight the currently running timer */
+        .timer-row.active-row {
+            border-color: var(--active);
+            background: #152e1b; /* Dark green tint */
         }
 
-        .neon-text-cyan {
-            color: var(--neon-cyan);
-            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        .row-inputs {
+            display: flex;
+            gap: 10px;
+            flex: 1;
         }
 
-        .neon-border-cyan {
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+        input {
+            background: transparent;
+            border: 1px solid #444;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 1rem;
         }
 
-        /* Custom Scrollbar */
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .name-input { flex: 2; }
+        .time-input { flex: 1; text-align: center; }
 
-        .active-row {
-            border-left: 4px solid var(--neon-cyan);
-            background: rgba(0, 243, 255, 0.05);
+        .btn-delete {
+            background: #ff453a;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-left: 10px;
+            font-weight: bold;
+            cursor: pointer;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.02); }
+        /* Bottom Section: Controls */
+        .controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(28, 28, 30, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            border-top: 1px solid #333;
         }
-        .timer-running { animation: pulse 2s infinite ease-in-out; }
+
+        button.ctrl-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        #btn-add { background: var(--surface); color: var(--primary); }
+        #btn-action { background: var(--active); color: #000; }
+        
+        .paused #btn-action { background: orange; }
+
     </style>
 </head>
-<body class="p-4">
+<body>
 
-    <div class="relative w-full max-w-lg h-[90vh] glass-panel rounded-[32px] overflow-hidden flex flex-col">
-        
-        <header class="p-6 text-center border-b border-white/10">
-            <h1 class="font-orbitron text-xl neon-text-cyan tracking-[0.3em]">AETHER.IO</h1>
-        </header>
+    <div class="clock-display">
+        <div id="timer-name">Ready</div>
+        <div id="timer-count">00:00</div>
+    </div>
 
-        <div class="flex-1 flex flex-col items-center justify-center p-6 space-y-4">
-            <div id="status-label" class="text-white/40 tracking-widest uppercase text-sm">READY</div>
-            <div id="timer-display" class="font-orbitron text-7xl sm:text-8xl font-bold text-white tracking-tighter">00:00</div>
-            <div id="next-label" class="text-xs text-white/20 uppercase italic">Next: Set timers below</div>
+    <div class="queue-list" id="queue">
         </div>
 
-        <div id="timer-list" class="flex-1 overflow-y-auto px-6 space-y-3 custom-scroll pb-4">
-            </div>
-
-        <div class="p-6 bg-black/20 border-t border-white/10 space-y-4">
-            <div class="flex gap-3">
-                <button onclick="addTimerRow()" class="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold transition">
-                    <i class="fas fa-plus mr-2"></i>ADD STAGE
-                </button>
-                <button onclick="resetAll()" class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold transition">
-                    RESET
-                </button>
-            </div>
-            
-            <button id="mainBtn" onclick="toggleMain()" class="w-full py-4 bg-[#00f3ff] text-black font-orbitron font-bold rounded-2xl shadow-[0_0_20px_rgba(0,243,255,0.3)] active:scale-95 transition">
-                START CIRCUIT
-            </button>
-        </div>
+    <div class="controls">
+        <button id="btn-add" class="ctrl-btn" onclick="addTimer()">+ Add Step</button>
+        <button id="btn-action" class="ctrl-btn" onclick="toggleTimer()">START</button>
     </div>
 
     <script>
-        let timers = [
-            { name: "Sprints", seconds: 30 },
-            { name: "Recovery", seconds: 15 }
+        // -- DATA --
+        // Default timers
+        let playlist = [
+            { id: 1, name: "Get Ready", seconds: 5 },
+            { id: 2, name: "Work", seconds: 10 },
+            { id: 3, name: "Rest", seconds: 5 }
         ];
-        
-        let currentIndex = 0;
-        let timeLeft = 0;
-        let timerInterval = null;
-        let audioCtx = null;
 
-        function render() {
-            const list = document.getElementById('timer-list');
-            list.innerHTML = '';
-            
-            timers.forEach((t, index) => {
-                const isActive = index === currentIndex && timerInterval;
-                const row = document.createElement('div');
-                row.className = `flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/5 transition-all ${isActive ? 'active-row' : ''}`;
-                
-                row.innerHTML = `
-                    <input class="bg-transparent text-sm font-bold text-white outline-none flex-1" 
-                           value="${t.name}" onchange="updateTimer(${index}, 'name', this.value)">
-                    <div class="flex items-center bg-black/30 rounded-lg px-2 border border-white/10">
-                        <input class="bg-transparent w-10 py-1 text-center text-cyan-400 font-bold outline-none" 
-                               type="number" value="${t.seconds}" onchange="updateTimer(${index}, 'seconds', this.value)">
-                        <span class="text-[10px] text-white/30 pr-1">S</span>
-                    </div>
-                    <button onclick="removeTimer(${index})" class="text-white/20 hover:text-red-500 transition px-2">
-                        <i class="fas fa-times"></i>
-                    </button>
-                `;
-                list.appendChild(row);
-            });
+        let currentIndex = 0;   // Which timer in the array are we on?
+        let timeLeft = 0;       // Seconds remaining on current timer
+        let intervalId = null;  // The JS Interval ID
+        let audioCtx = null;    // For the beep
 
-            if (timers[currentIndex]) {
-                const next = timers[currentIndex + 1];
-                document.getElementById('next-label').textContent = next ? `Next Up: ${next.name}` : "Final Stage";
+        // -- DOM ELEMENTS --
+        const queueContainer = document.getElementById('queue');
+        const displayCount = document.getElementById('timer-count');
+        const displayName = document.getElementById('timer-name');
+        const actionBtn = document.getElementById('btn-action');
+
+        // -- INITIAL RENDER --
+        renderList();
+        resetToStart();
+
+        // -- CORE LOGIC --
+
+        function toggleTimer() {
+            if (intervalId) {
+                pause();
+            } else {
+                start();
             }
-        }
-
-        function updateTimer(index, field, value) {
-            timers[index][field] = field === 'seconds' ? Math.max(0, parseInt(value) || 0) : value;
-            if (!timerInterval) syncDisplay();
-        }
-
-        function addTimerRow() {
-            timers.push({ name: `Stage ${timers.length + 1}`, seconds: 30 });
-            render();
-        }
-
-        function removeTimer(index) {
-            timers.splice(index, 1);
-            if (currentIndex >= timers.length) currentIndex = Math.max(0, timers.length - 1);
-            render();
-            syncDisplay();
-        }
-
-        function syncDisplay() {
-            if (timers[currentIndex]) {
-                timeLeft = timers[currentIndex].seconds;
-                updateBigDisplay();
-                document.getElementById('status-label').textContent = timers[currentIndex].name;
-            }
-        }
-
-        function updateBigDisplay() {
-            const m = Math.floor(timeLeft / 60);
-            const s = timeLeft % 60;
-            document.getElementById('timer-display').textContent = 
-                `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        }
-
-        function beep(freq = 880) {
-            try {
-                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.4);
-            } catch(e) {}
-        }
-
-        function toggleMain() {
-            if (timerInterval) pause(); else start();
         }
 
         function start() {
-            if (timers.length === 0) return;
-            if (timeLeft <= 0) syncDisplay();
+            // Init Audio Context on first user click (Mobile requirement)
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            actionBtn.textContent = "PAUSE";
+            document.body.classList.add('paused'); 
             
-            document.getElementById('mainBtn').textContent = "PAUSE";
-            document.getElementById('mainBtn').style.background = "#ff00ff"; // Magenta for pause
-            document.getElementById('mainBtn').style.boxShadow = "0 0 20px rgba(255, 0, 255, 0.3)";
-            document.getElementById('timer-display').classList.add('timer-running');
+            // If we are completely fresh or finished, reset to index 0
+            if (currentIndex >= playlist.length) {
+                currentIndex = 0;
+                timeLeft = playlist[0].seconds;
+            }
 
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                updateBigDisplay();
-
+            intervalId = setInterval(() => {
+                // THE FIX: Check if we are done BEFORE subtracting
                 if (timeLeft <= 0) {
-                    currentIndex++;
-                    if (currentIndex < timers.length) {
-                        beep(880);
-                        syncDisplay();
-                        render();
-                    } else {
-                        finish();
-                    }
+                    nextTimer();
+                } else {
+                    timeLeft--;
+                    updateDisplay();
                 }
             }, 1000);
-            render();
         }
 
         function pause() {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            document.getElementById('mainBtn').textContent = "RESUME";
-            document.getElementById('mainBtn').style.background = "var(--neon-cyan)";
-            document.getElementById('mainBtn').style.boxShadow = "0 0 20px rgba(0, 243, 255, 0.3)";
-            document.getElementById('timer-display').classList.remove('timer-running');
-            render();
+            clearInterval(intervalId);
+            intervalId = null;
+            actionBtn.textContent = "RESUME";
+            document.body.classList.remove('paused');
+        }
+
+        function nextTimer() {
+            // Play Beep
+            playBeep();
+
+            // Move to next
+            currentIndex++;
+
+            // Check if there is a next timer
+            if (currentIndex < playlist.length) {
+                // Yes: Set time, highlight row, keep going
+                timeLeft = playlist[currentIndex].seconds;
+                updateDisplay();
+                highlightActiveRow();
+                // Scroll the list so the active one is visible
+                document.querySelector('.active-row')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                // No: We are done
+                finish();
+            }
         }
 
         function finish() {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            beep(440);
-            document.getElementById('mainBtn').textContent = "START CIRCUIT";
-            document.getElementById('mainBtn').style.background = "var(--neon-cyan)";
-            document.getElementById('status-label').textContent = "FINISHED";
-            document.getElementById('timer-display').classList.remove('timer-running');
-            currentIndex = 0;
-            render();
-        }
-
-        function resetAll() {
             pause();
-            currentIndex = 0;
-            syncDisplay();
-            document.getElementById('status-label').textContent = "READY";
-            render();
+            playBeep(440); // Lower pitch finish beep
+            setTimeout(() => playBeep(440), 200); // Double beep
+            
+            displayName.textContent = "COMPLETED";
+            displayName.style.color = "var(--active)";
+            displayCount.textContent = "DONE";
+            actionBtn.textContent = "RESTART";
+            currentIndex = 0; // Reset for next time
         }
 
-        // Initialize
-        syncDisplay();
-        render();
+        function resetToStart() {
+            currentIndex = 0;
+            // Grab the first timer's seconds if it exists
+            if (playlist.length > 0) {
+                timeLeft = playlist[0].seconds;
+                displayName.textContent = playlist[0].name;
+                displayName.style.color = "var(--dim)";
+            } else {
+                timeLeft = 0;
+                displayName.textContent = "Empty";
+            }
+            updateDisplay();
+            highlightActiveRow();
+        }
+
+        // -- DISPLAY HELPERS --
+
+        function updateDisplay() {
+            const m = Math.floor(timeLeft / 60);
+            const s = timeLeft % 60;
+            displayCount.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            
+            if (playlist[currentIndex]) {
+                displayName.textContent = playlist[currentIndex].name;
+            }
+        }
+
+        function highlightActiveRow() {
+            // Remove active class from all
+            document.querySelectorAll('.timer-row').forEach(row => row.classList.remove('active-row'));
+            
+            // Add to current index
+            const rows = document.querySelectorAll('.timer-row');
+            if (rows[currentIndex]) {
+                rows[currentIndex].classList.add('active-row');
+            }
+        }
+
+        // -- LIST MANAGEMENT --
+
+        function renderList() {
+            queueContainer.innerHTML = '';
+            playlist.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'timer-row';
+                if (index === currentIndex && intervalId) div.classList.add('active-row');
+                
+                div.innerHTML = `
+                    <div class="row-inputs">
+                        <input type="text" class="name-input" value="${item.name}" onchange="updateData(${index}, 'name', this.value)">
+                        <input type="number" class="time-input" value="${item.seconds}" onchange="updateData(${index}, 'seconds', this.value)">
+                    </div>
+                    <button class="btn-delete" onclick="removeTimer(${index})">✕</button>
+                `;
+                queueContainer.appendChild(div);
+            });
+            highlightActiveRow();
+        }
+
+        function addTimer() {
+            playlist.push({ 
+                id: Date.now(), 
+                name: "Exercise", 
+                seconds: 30 
+            });
+            renderList();
+            // If the list was empty, we need to update the big display immediately
+            if (playlist.length === 1) resetToStart();
+        }
+
+        function removeTimer(index) {
+            playlist.splice(index, 1);
+            renderList();
+            // If we deleted the current running timer, reset
+            if (index === currentIndex) {
+                pause();
+                resetToStart();
+            }
+        }
+
+        function updateData(index, field, value) {
+            if (field === 'seconds') value = parseInt(value);
+            playlist[index][field] = value;
+            
+            // If we edited the *current* timer while it's paused or waiting, update the big display
+            if (index === currentIndex && !intervalId) {
+                timeLeft = playlist[currentIndex].seconds;
+                updateDisplay();
+            }
+        }
+
+        // -- SOUND --
+        function playBeep(freq = 800) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.value = freq;
+            osc.type = "sine";
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.5);
+        }
+
     </script>
 </body>
 </html>
