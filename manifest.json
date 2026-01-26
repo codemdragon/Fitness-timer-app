@@ -1,0 +1,24 @@
+{
+    "name": "Aether Timer",
+    "short_name": "Aether",
+    "description": "High-performance fitness circuit timer with QR sharing.",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#0a0b1e",
+    "theme_color": "#00f3ff",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
