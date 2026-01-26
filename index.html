@@ -538,8 +538,11 @@
 
                 // --- QR LOGIC ---
                 shareCircuit: (id) => {
-                    const c = circuits.find(circuit => circuit.id === id);
-                    if (!c) return;
+                    const c = circuits.find(circuit => String(circuit.id) === String(id));
+                    if (!c) {
+                        alert("Circuit not found!");
+                        return;
+                    }
 
                     const payload = {
                         v: 1,
@@ -554,13 +557,19 @@
                     const data = JSON.stringify(payload);
                     els.qrTitle.innerText = c.name;
 
-                    QRCode.toCanvas(els.qrCanvas, data, {
+                    const qrLib = window.QRCode || window.qrcode;
+                    if (!qrLib) {
+                        alert("QR Library not loaded!");
+                        return;
+                    }
+
+                    qrLib.toCanvas(els.qrCanvas, data, {
                         width: 256,
                         margin: 0,
                         color: { dark: '#0a0b1e', light: '#ffffff' },
                         errorCorrectionLevel: 'M'
                     }, (err) => {
-                        if (err) alert('Failed to generate QR');
+                        if (err) alert('Failed to generate QR: ' + err.message);
                         else {
                             els.qrModal.classList.remove('opacity-0', 'pointer-events-none');
                         }
