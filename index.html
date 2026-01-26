@@ -580,7 +580,7 @@
         };
 
         const startTimer = () => {
-            console.log('startTimer called, isPaused:', isPaused);
+            console.log('startTimer called, isPaused:', isPaused, 'timerSeconds:', timerSeconds);
 
             // Clear any existing timer before starting new one
             if (activeTimer) {
@@ -588,7 +588,8 @@
                 activeTimer = null;
             }
 
-            if (!isPaused) return;
+            // No guard check - always start the timer
+            // This ensures advanceTask() can always start the next timer
 
             // Force-resume AudioContext on every start
             if (ctx.state === 'suspended') {
@@ -599,6 +600,7 @@
             updatePlayBtnUI();
             endTime = Date.now() + (timerSeconds * 1000);
             activeTimer = setInterval(timerTick, 500);
+            console.log('Timer started, endTime:', endTime);
 
             // Request wake lock to keep screen/CPU alive on mobile
             requestWakeLock();
