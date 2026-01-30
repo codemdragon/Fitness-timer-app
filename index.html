@@ -204,12 +204,33 @@
         body.big-timer-mode #big-timer-progress-bar {
             display: block;
         }
+
+        /* Big Timer Label */
+        #big-timer-label {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            /* Large but not distraction */
+            color: rgba(255, 255, 255, 0.5);
+            z-index: 60;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        body.big-timer-mode #big-timer-label {
+            display: block;
+        }
     </style>
 </head>
 
 <body class="h-[100dvh] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
     <!-- Big Mode Progress Bar -->
     <div id="big-timer-progress-bar"></div>
+    <!-- Big Mode Label -->
+    <div id="big-timer-label"></div>
 
     <div class="relative w-full max-w-4xl h-full sm:max-h-[90vh] glass-panel overflow-hidden">
         <header
@@ -397,7 +418,8 @@
                 qrTitle: document.getElementById('qr-title'),
                 scannerModal: document.getElementById('scanner-modal'),
                 timerTapArea: document.getElementById('timer-container-tap'),
-                bigProgressBar: document.getElementById('big-timer-progress-bar')
+                bigProgressBar: document.getElementById('big-timer-progress-bar'),
+                bigTimerLabel: document.getElementById('big-timer-label')
             };
             let html5QrCode = null, lastShareUrl = '';
 
@@ -422,11 +444,11 @@
                 if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
                     // Swipe Detected
                     if (diffX > 0) {
-                        // Swipe Right -> Skip Back
-                        app.prevTask();
-                    } else {
-                        // Swipe Left -> Skip Forward
+                        // Swipe Right -> Skip Forward (Next) - INVERTED
                         app.skipTask();
+                    } else {
+                        // Swipe Left -> Skip Backward (Prev) - INVERTED
+                        app.prevTask();
                     }
                     return; // Don't process tap if swipe occurred
                 }
@@ -634,6 +656,7 @@
                 els.currentTaskName.innerText = task.name;
                 els.circuitTitle.innerText = activeCircuit.name;
                 els.timerDisplay.innerText = formatTime(task.duration);
+                if (els.bigTimerLabel) els.bigTimerLabel.innerText = task.name; // Update Label
                 const next = activeCircuit.tasks[index + 1];
                 els.nextTaskInfo.innerText = next ? `Next: ${next.name}` : (isLooping ? 'Next: Restart' : 'Next: Finish');
                 updateProgress(1);
@@ -695,7 +718,9 @@
                 isTimerRunning = false;
                 els.currentTaskName.innerText = "COMPLETE";
                 els.timerDisplay.innerText = "DONE";
+                if (els.bigTimerLabel) els.bigTimerLabel.innerText = "COMPLETE";
                 updateControls();
+                exitBigMode(); // Force exit big mode
                 setTimeout(() => navigateTo('home'), 2000);
             };
 
