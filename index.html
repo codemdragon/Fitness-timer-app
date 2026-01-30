@@ -141,57 +141,8 @@
             .landscape-controls {
                 display: grid !important;
                 grid-template-columns: repeat(3, 1fr) !important;
-                /* Update for 5 buttons layout */
-                gap: 0.5rem !important;
-                place-items: center;
-                /* Center items in grid cells */
-            }
-
-            /* Span last 2 buttons to center them below row of 3 if needed, or just 3-2 layout */
-            .landscape-controls button:nth-child(4) {
-                grid-column: 1 / 2;
-                grid-row: 2;
-            }
-
-            .landscape-controls button:nth-child(5) {
-                grid-column: 3 / 4;
-                grid-row: 2;
-            }
-
-            /* Actually, let's do a cleaner 5-button layout. 
-                  Row 1: Prev, Play, Next
-                  Row 2: Stop, Loop
-               */
-            .landscape-controls {
-                grid-template-areas:
-                    "prev play next"
-                    "stop . loop";
-                /* Wait, grid-template-areas is tricky if I don't assign areas to buttons. 
-                      Let's stick to simple grid indices or flex wrap if easy. 
-                      Let's use specific nth-child targeting for the 5 buttons.
-                   */
-            }
-
-            /* Resetting above complexity, simpler approach below in styles */
-        }
-
-        /* Enhanced Landscape Grid for 5 buttons */
-        @media (orientation: landscape) {
-            .landscape-controls {
-                grid-template-columns: repeat(3, 1fr) !important;
                 grid-template-rows: auto auto !important;
             }
-
-            /* Button Order: 
-                   1: Prev
-                   2: Play
-                   3: Stop -> Move to pos 4
-                   4: Next -> Move to pos 3
-                   5: Loop -> Move to pos 5
-                   
-                   Wait, HTML order is: Prev, Control(Play/Pause), Stop, Next(Skip), Loop
-                   Let's reorder in HTML to make it logical: Prev, Play, Next, Stop, Loop
-                */
         }
 
         /* Big Timer Mode */
@@ -210,20 +161,55 @@
             gap: 0 !important;
         }
 
+        /* Hide ring in big mode */
+        body.big-timer-mode .timer-ring-container svg {
+            display: none !important;
+        }
+
         body.big-timer-mode .timer-ring-container {
-            width: 90vmin !important;
-            height: 90vmin !important;
+            width: 100vw !important;
+            height: 100vh !important;
             max-width: none !important;
             max-height: none !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            /* Above everything */
         }
 
         body.big-timer-mode #timer-display {
-            font-size: 20vmin !important;
+            font-size: 35vmin !important;
+            /* MASSIVE TEXT */
+            text-shadow: 0 0 30px var(--neon-cyan);
+        }
+
+        /* Progress Bar for Big Mode */
+        #big-timer-progress-bar {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 15px;
+            background-color: var(--neon-cyan);
+            width: 100%;
+            z-index: 60;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        body.big-timer-mode #big-timer-progress-bar {
+            display: block;
         }
     </style>
 </head>
 
 <body class="h-[100dvh] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
+    <!-- Big Mode Progress Bar -->
+    <div id="big-timer-progress-bar"></div>
 
     <div class="relative w-full max-w-4xl h-full sm:max-h-[90vh] glass-panel overflow-hidden">
         <header
@@ -280,7 +266,7 @@
                     <div id="next-task-info" class="text-xs text-white/30 mt-2 uppercase">Next: --</div>
                 </div>
 
-                <!-- ADDED DOUBLE TAP HANDLER HERE -->
+                <!-- ADDED GESTURE HANDLER HERE -->
                 <div id="timer-container-tap"
                     class="timer-ring-container relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center cursor-pointer select-none">
                     <svg class="w-full h-full -rotate-90 pointer-events-none">
@@ -410,26 +396,94 @@
                 qrCode: document.getElementById('qr-code'),
                 qrTitle: document.getElementById('qr-title'),
                 scannerModal: document.getElementById('scanner-modal'),
-                timerTapArea: document.getElementById('timer-container-tap')
+                timerTapArea: document.getElementById('timer-container-tap'),
+                bigProgressBar: document.getElementById('big-timer-progress-bar')
             };
             let html5QrCode = null, lastShareUrl = '';
 
-            // --- DOUBLE TAP LOGIC ---
-            let lastTap = 0;
-            els.timerTapArea.addEventListener('click', (e) => {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTap;
-                if (tapLength < 500 && tapLength > 0) {
-                    // Double Tap
-                    toggleBigMode();
-                    e.preventDefault();
-                } else {
-                    // Single Tap Logic
-                    if (document.body.classList.contains('big-timer-mode')) {
-                        exitBigMode();
+            // --- GESTURE LOGIC ---
+            let tapCount = 0;
+            let tapTimeout = null;
+            let touchStartX = 0;
+            let touchStartY = 0;
+
+            const handleTouchStart = (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            };
+
+            const handleTouchEnd = (e) => {
+                const touchEndX = e.changedTouches[0].screenX;
+                const touchEndY = e.changedTouches[0].screenY;
+                const diffX = touchEndX - touchStartX;
+                const diffY = touchEndY - touchStartY;
+
+                // Check for Swipe (if horizontal movement is significant)
+                if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+                    // Swipe Detected
+                    if (diffX > 0) {
+                        // Swipe Right -> Skip Back
+                        app.prevTask();
+                    } else {
+                        // Swipe Left -> Skip Forward
+                        app.skipTask();
                     }
+                    return; // Don't process tap if swipe occurred
                 }
-                lastTap = currentTime;
+
+                // If not a swipe, treat as Tap
+                // Simple debounce/tap counting
+                tapCount++;
+                if (tapCount === 1) {
+                    tapTimeout = setTimeout(() => {
+                        // Single Tap Triggered
+                        handleSingleTap();
+                        tapCount = 0;
+                    }, 300); // 300ms delay to wait for potential second tap
+                } else if (tapCount === 2) {
+                    // Double Tap Triggered
+                    clearTimeout(tapTimeout);
+                    handleDoubleTap();
+                    tapCount = 0;
+                }
+            };
+
+            // Mouse fallback for testing
+            const handleMouseClick = (e) => {
+                tapCount++;
+                if (tapCount === 1) {
+                    tapTimeout = setTimeout(() => {
+                        handleSingleTap();
+                        tapCount = 0;
+                    }, 300);
+                } else if (tapCount === 2) {
+                    clearTimeout(tapTimeout);
+                    handleDoubleTap();
+                    tapCount = 0;
+                }
+            };
+
+            const handleSingleTap = () => {
+                if (document.body.classList.contains('big-timer-mode')) {
+                    app.toggleTimer(); // Play/Pause in big mode
+                }
+            };
+
+            const handleDoubleTap = () => {
+                // Toggle Big Timer Mode
+                if (document.body.classList.contains('big-timer-mode')) {
+                    exitBigMode();
+                } else {
+                    toggleBigMode();
+                }
+            };
+
+            els.timerTapArea.addEventListener('touchstart', handleTouchStart);
+            els.timerTapArea.addEventListener('touchend', handleTouchEnd);
+            els.timerTapArea.addEventListener('click', (e) => {
+                if (e.pointerType === 'mouse') {
+                    handleMouseClick(e);
+                }
             });
 
             const toggleBigMode = () => {
@@ -608,7 +662,10 @@
                 }
             };
 
-            const updateProgress = (ratio) => { els.timerProgress.style.strokeDashoffset = 1000 - (1000 * ratio); };
+            const updateProgress = (ratio) => {
+                els.timerProgress.style.strokeDashoffset = 1000 - (1000 * ratio);
+                if (els.bigProgressBar) els.bigProgressBar.style.width = `${ratio * 100}%`;
+            };
 
             const updateControls = () => {
                 els.timerCtrlBtn.innerHTML = isTimerRunning ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
