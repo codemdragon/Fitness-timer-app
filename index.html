@@ -140,57 +140,58 @@
 
             .landscape-controls {
                 display: grid !important;
-                grid-template-columns: repeat(2, 1fr) !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                /* Update for 5 buttons layout */
                 gap: 0.5rem !important;
+                place-items: center;
+                /* Center items in grid cells */
             }
 
-            #qr-modal div.max-w-xs {
-                max-height: 90vh;
-                overflow-y: auto;
+            /* Span last 2 buttons to center them below row of 3 if needed, or just 3-2 layout */
+            .landscape-controls button:nth-child(4) {
+                grid-column: 1 / 2;
+                grid-row: 2;
             }
 
-            #qr-modal #qr-container {
-                padding: 1rem !important;
+            .landscape-controls button:nth-child(5) {
+                grid-column: 3 / 4;
+                grid-row: 2;
             }
 
-            #qr-modal .w-full.space-y-2 {
-                display: flex;
-                flex-direction: row;
-                gap: 0.5rem;
+            /* Actually, let's do a cleaner 5-button layout. 
+                  Row 1: Prev, Play, Next
+                  Row 2: Stop, Loop
+               */
+            .landscape-controls {
+                grid-template-areas:
+                    "prev play next"
+                    "stop . loop";
+                /* Wait, grid-template-areas is tricky if I don't assign areas to buttons. 
+                      Let's stick to simple grid indices or flex wrap if easy. 
+                      Let's use specific nth-child targeting for the 5 buttons.
+                   */
             }
 
-            #qr-modal .w-full.space-y-2 button {
-                margin-top: 0 !important;
+            /* Resetting above complexity, simpler approach below in styles */
+        }
+
+        /* Enhanced Landscape Grid for 5 buttons */
+        @media (orientation: landscape) {
+            .landscape-controls {
+                grid-template-columns: repeat(3, 1fr) !important;
+                grid-template-rows: auto auto !important;
             }
 
-            #scanner-modal {
-                flex-direction: row !important;
-            }
-
-            #scanner-modal .p-6 {
-                width: 200px;
-                flex-direction: column;
-                justify-content: flex-start;
-                align-items: flex-start;
-                padding: 1.5rem;
-            }
-
-            #scanner-modal .p-6 h3 {
-                margin-bottom: 1rem;
-            }
-
-            #scanner-modal .p-6 button {
-                margin-left: 0;
-            }
-
-            #scanner-modal #reader {
-                flex-grow: 1;
-            }
-
-            #scanner-modal .p-8 {
-                width: 200px;
-                padding: 1.5rem;
-            }
+            /* Button Order: 
+                   1: Prev
+                   2: Play
+                   3: Stop -> Move to pos 4
+                   4: Next -> Move to pos 3
+                   5: Loop -> Move to pos 5
+                   
+                   Wait, HTML order is: Prev, Control(Play/Pause), Stop, Next(Skip), Loop
+                   Let's reorder in HTML to make it logical: Prev, Play, Next, Stop, Loop
+                */
         }
     </style>
 </head>
@@ -252,28 +253,39 @@
                     <div id="next-task-info" class="text-xs text-white/30 mt-2 uppercase">Next: --</div>
                 </div>
 
-                <div class="timer-ring-container relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center">
-                    <svg class="w-full h-full -rotate-90">
+                <!-- ADDED DOUBLE TAP HANDLER HERE -->
+                <div id="timer-container-tap"
+                    class="timer-ring-container relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center cursor-pointer select-none">
+                    <svg class="w-full h-full -rotate-90 pointer-events-none">
                         <circle cx="50%" cy="50%" r="45%" stroke="rgba(255,255,255,0.05)" stroke-width="8"
                             fill="transparent" />
                         <circle id="timer-progress" cx="50%" cy="50%" r="45%" stroke="var(--neon-cyan)" stroke-width="8"
                             fill="transparent" stroke-dasharray="1000" stroke-dashoffset="0" stroke-linecap="round" />
                     </svg>
-                    <span id="timer-display" class="absolute text-5xl font-orbitron font-bold text-white">00:00</span>
+                    <span id="timer-display"
+                        class="absolute text-5xl font-orbitron font-bold text-white pointer-events-none">00:00</span>
                 </div>
 
                 <div class="flex space-x-4 landscape:space-x-0 landscape-controls">
+                    <!-- REORDERED & ADDED SKIP BACK -->
+                    <button onclick="app.prevTask()"
+                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl border border-white/10 hover:text-cyan-400 hover:border-cyan-400 transition order-1"><i
+                            class="fas fa-backward"></i></button>
+
                     <button id="timer-ctrl-btn" onclick="app.toggleTimer()"
-                        class="w-16 h-16 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-xl"><i
+                        class="w-16 h-16 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-xl order-2"><i
                             class="fas fa-play"></i></button>
-                    <button onclick="app.stopTimer()"
-                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl border border-white/10"><i
-                            class="fas fa-stop"></i></button>
+
                     <button onclick="app.skipTask()"
-                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl border border-white/10"><i
+                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl border border-white/10 order-3"><i
                             class="fas fa-forward"></i></button>
+
+                    <button onclick="app.stopTimer()"
+                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl border border-white/10 order-4"><i
+                            class="fas fa-stop"></i></button>
+
                     <button id="loop-btn" onclick="app.toggleLoop()"
-                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/40 text-xl border border-white/10"><i
+                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/40 text-xl border border-white/10 order-5"><i
                             class="fas fa-redo"></i></button>
                 </div>
             </div>
@@ -370,9 +382,52 @@
                 qrModal: document.getElementById('qr-modal'),
                 qrCode: document.getElementById('qr-code'),
                 qrTitle: document.getElementById('qr-title'),
-                scannerModal: document.getElementById('scanner-modal')
+                scannerModal: document.getElementById('scanner-modal'),
+                timerTapArea: document.getElementById('timer-container-tap')
             };
             let html5QrCode = null, lastShareUrl = '';
+
+            // --- DOUBLE TAP LOGIC ---
+            let lastTap = 0;
+            els.timerTapArea.addEventListener('click', (e) => {
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+                if (tapLength < 500 && tapLength > 0) {
+                    // Double Tap
+                    toggleFullScreen();
+                    e.preventDefault();
+                } else {
+                    // Single Tap Logic if needed, or stick to double for FS
+                    if (document.fullscreenElement) {
+                        // If fullscreen and single tap, exit? User said: "single tapping it reverts to normal view"
+                        // This implies we should exit on single tap IF we are in fullscreen
+                        exitFullScreen();
+                    }
+                }
+                lastTap = currentTime;
+            });
+
+            const toggleFullScreen = () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().then(() => {
+                        if (screen.orientation && screen.orientation.lock) {
+                            screen.orientation.lock('landscape').catch(e => console.log('Orientation lock failed', e));
+                        }
+                    }).catch(err => {
+                        console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                    });
+                }
+            };
+
+            const exitFullScreen = () => {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen().then(() => {
+                        if (screen.orientation && screen.orientation.unlock) {
+                            screen.orientation.unlock();
+                        }
+                    });
+                }
+            };
 
             // --- WHEEL PICKER LOGIC ---
             const setupPicker = (el, max) => {
@@ -588,6 +643,17 @@
                     activeTaskIndex++;
                     loadTask(activeTaskIndex);
                     if (isTimerRunning) endTime = Date.now() + (timeLeftWhenPaused * 1000);
+                },
+                prevTask: () => {
+                    if (activeTaskIndex > 0) {
+                        activeTaskIndex--;
+                        loadTask(activeTaskIndex);
+                        if (isTimerRunning) endTime = Date.now() + (timeLeftWhenPaused * 1000);
+                    } else {
+                        // If already at start, maybe restart the task?
+                        loadTask(activeTaskIndex);
+                        if (isTimerRunning) endTime = Date.now() + (timeLeftWhenPaused * 1000);
+                    }
                 },
                 toggleLoop: () => { isLooping = !isLooping; updateControls(); },
 
