@@ -193,6 +193,33 @@
                    Let's reorder in HTML to make it logical: Prev, Play, Next, Stop, Loop
                 */
         }
+
+        /* Big Timer Mode */
+        body.big-timer-mode header,
+        body.big-timer-mode .landscape-controls,
+        body.big-timer-mode .text-center {
+            display: none !important;
+        }
+
+        body.big-timer-mode .page-timer {
+            justify-content: center;
+            padding: 0 !important;
+        }
+
+        body.big-timer-mode .timer-layout {
+            gap: 0 !important;
+        }
+
+        body.big-timer-mode .timer-ring-container {
+            width: 90vmin !important;
+            height: 90vmin !important;
+            max-width: none !important;
+            max-height: none !important;
+        }
+
+        body.big-timer-mode #timer-display {
+            font-size: 20vmin !important;
+        }
     </style>
 </head>
 
@@ -266,26 +293,26 @@
                         class="absolute text-5xl font-orbitron font-bold text-white pointer-events-none">00:00</span>
                 </div>
 
-                <div class="flex space-x-4 landscape:space-x-0 landscape-controls">
+                <div class="flex space-x-2 sm:space-x-4 landscape:space-x-0 landscape-controls">
                     <!-- REORDERED & ADDED SKIP BACK -->
                     <button onclick="app.prevTask()"
-                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl border border-white/10 hover:text-cyan-400 hover:border-cyan-400 transition order-1"><i
+                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-lg sm:text-xl border border-white/10 hover:text-cyan-400 hover:border-cyan-400 transition order-1"><i
                             class="fas fa-backward"></i></button>
 
                     <button id="timer-ctrl-btn" onclick="app.toggleTimer()"
-                        class="w-16 h-16 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-xl order-2"><i
+                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-lg sm:text-xl order-2"><i
                             class="fas fa-play"></i></button>
 
                     <button onclick="app.skipTask()"
-                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl border border-white/10 order-3"><i
+                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-lg sm:text-xl border border-white/10 order-3"><i
                             class="fas fa-forward"></i></button>
 
                     <button onclick="app.stopTimer()"
-                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-xl border border-white/10 order-4"><i
+                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-lg sm:text-xl border border-white/10 order-4"><i
                             class="fas fa-stop"></i></button>
 
                     <button id="loop-btn" onclick="app.toggleLoop()"
-                        class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/40 text-xl border border-white/10 order-5"><i
+                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/5 flex items-center justify-center text-white/40 text-lg sm:text-xl border border-white/10 order-5"><i
                             class="fas fa-redo"></i></button>
                 </div>
             </div>
@@ -394,38 +421,37 @@
                 const tapLength = currentTime - lastTap;
                 if (tapLength < 500 && tapLength > 0) {
                     // Double Tap
-                    toggleFullScreen();
+                    toggleBigMode();
                     e.preventDefault();
                 } else {
-                    // Single Tap Logic if needed, or stick to double for FS
-                    if (document.fullscreenElement) {
-                        // If fullscreen and single tap, exit? User said: "single tapping it reverts to normal view"
-                        // This implies we should exit on single tap IF we are in fullscreen
-                        exitFullScreen();
+                    // Single Tap Logic
+                    if (document.body.classList.contains('big-timer-mode')) {
+                        exitBigMode();
                     }
                 }
                 lastTap = currentTime;
             });
 
-            const toggleFullScreen = () => {
+            const toggleBigMode = () => {
+                document.body.classList.add('big-timer-mode');
+                // Also trigger browser fullscreen for maximum immersion
                 if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().then(() => {
-                        if (screen.orientation && screen.orientation.lock) {
-                            screen.orientation.lock('landscape').catch(e => console.log('Orientation lock failed', e));
-                        }
-                    }).catch(err => {
-                        console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log(`Error attempting to enable full-screen mode: ${err.message}`);
                     });
+                }
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(e => console.log('Orient lock failed'));
                 }
             };
 
-            const exitFullScreen = () => {
+            const exitBigMode = () => {
+                document.body.classList.remove('big-timer-mode');
                 if (document.fullscreenElement) {
-                    document.exitFullscreen().then(() => {
-                        if (screen.orientation && screen.orientation.unlock) {
-                            screen.orientation.unlock();
-                        }
-                    });
+                    document.exitFullscreen();
+                }
+                if (screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock();
                 }
             };
 
