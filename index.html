@@ -182,9 +182,9 @@
         }
 
         body.big-timer-mode #timer-display {
-            font-size: 35vmin !important;
-            /* MASSIVE TEXT */
-            text-shadow: 0 0 30px var(--neon-cyan);
+            font-size: 55vmin !important;
+            /* ULTRA MASSIVE TEXT */
+            text-shadow: 0 0 40px var(--neon-cyan);
         }
 
         /* Progress Bar for Big Mode */
@@ -508,6 +508,13 @@
                     screen.orientation.unlock();
                 }
             };
+
+            // Listen for fullscreen changes (handles back button on Android)
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement && document.body.classList.contains('big-timer-mode')) {
+                    exitBigMode();
+                }
+            });
 
             // --- WHEEL PICKER LOGIC ---
             const setupPicker = (el, max) => {
