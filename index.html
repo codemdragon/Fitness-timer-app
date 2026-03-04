@@ -338,7 +338,7 @@
             <div class="timer-ring-container relative w-80 h-80 max-w-[80vw] max-h-[80vw]">
                 <svg class="w-full h-full -rotate-90" viewBox="0 0 200 200">
                     <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8"></circle>
-                    <circle id="timer-ring" cx="100" cy="100" r="90" fill="none" stroke="var(--timer-color)" stroke-width="8" stroke-dasharray="565.48" stroke-dashoffset="0" stroke-linecap="round"></circle>
+                    <circle id="timer-ring" cx="100" cy="100" r="90" fill="none" stroke="var(--timer-color)" stroke-width="8" stroke-dasharray="565.48" stroke-linecap="round"></circle>
                 </svg>
                 <div class="absolute inset-0 flex flex-col items-center justify-center">
                     <div id="timer-display" class="text-7xl font-orbitron font-bold neon-text-cyan">00:00</div>
@@ -443,10 +443,12 @@
                     <label class="block text-sm opacity-70 mb-3">Beep on last</label>
                     <div class="picker-container glass-panel" id="beep-picker">
                         <div style="height: 50px;"></div>
+                        <div style="height: 50px;"></div>
                         <div class="picker-item" data-value="0">OFF</div>
                         <div class="picker-item" data-value="3">3 sec</div>
                         <div class="picker-item active" data-value="5">5 sec</div>
                         <div class="picker-item" data-value="10">10 sec</div>
+                        <div style="height: 50px;"></div>
                         <div style="height: 50px;"></div>
                     </div>
                 </div>
@@ -797,12 +799,16 @@
                 els.taskCounter.textContent = `${index + 1} / ${activeCircuit.tasks.length}`;
                 els.bigTimerLabel.textContent = task.type === 'workout' ? 'Exercise' : 'Break';
                 updateRing(1);
-                lastBeepTime = -1; // Reset beep tracker
+                lastBeepTime = -1;
 
                 // Apply flash color if enabled
                 if (settings.flashEnabled) {
                     const color = task.type === 'workout' ? settings.exerciseColor : settings.breakColor;
                     document.body.style.backgroundColor = color;
+                    updateTimerColors(color);
+                } else {
+                    document.body.style.backgroundColor = 'var(--dark-bg)';
+                    updateTimerColors('#0a0b1e');
                 }
             };
 
@@ -954,8 +960,8 @@
                     const items = beepPicker.querySelectorAll('.picker-item');
                     
                     items.forEach((item, idx) => {
-                        // Account for first spacer (50px) + item index
-                        const itemPosition = 50 + (idx * 50);
+                        // Account for two spacers (100px total) + item index
+                        const itemPosition = 100 + (idx * 50);
                         const offset = Math.abs(scrollTop - itemPosition);
                         
                         if (offset < 25) {
@@ -977,7 +983,7 @@
                 const items = beepPicker.querySelectorAll('.picker-item');
                 items.forEach((item, idx) => {
                     if (parseInt(item.dataset.value) === settings.beepSeconds) {
-                        beepPicker.scrollTop = 50 + (idx * 50); // spacer + item position
+                        beepPicker.scrollTop = 100 + (idx * 50); // two spacers (100px) + item position
                     }
                 });
                 
