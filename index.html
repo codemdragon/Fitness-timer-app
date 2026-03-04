@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aether Timer | Pro Wheel</title>
+    <meta name="theme-color" content="#00f3ff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
+
+        :root {
+            --neon-cyan: #00f3ff;
+            --dark-bg: #0a0b1e;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: #e0e0e0;
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+        }
+
+        .neon-text-cyan {
+            color: var(--neon-cyan);
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+        }
+
+        .neon-bg-cyan {
+            background-color: var(--neon-cyan);
+            box-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        /* Futuristic Scroll Picker */
+        .picker-container {
+            height: 150px;
+            overflow-y: scroll;
+            scrollbar-width: none;
+            scroll-snap-type: y mandatory;
+            mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+        }
+
+        .picker-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .picker-item {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.2s;
+            opacity: 0.3;
+            scroll-snap-align: center;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .picker-item.active {
+            opacity: 1;
+            color: var(--neon-cyan);
+            transform: scale(1.2);
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+        }
+
+        .timer-active {
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        .page {
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            overflow-y: auto;
+            padding-bottom: 120px;
+        }
+
+        .page-hidden {
+            transform: translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        @media (orientation: landscape) {
+            .timer-layout {
+                flex-direction: row !important;
+                justify-content: center !important;
+                align-items: center !important;
+                height: 100% !important;
+                padding-top: 0 !important;
+                gap: 2rem !important;
+            }
+
+            .timer-ring-container {
+                width: 45vh !important;
+                height: 45vh !important;
+                max-width: 250px;
+                max-height: 250px;
+            }
+
+            .landscape-controls {
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                grid-template-rows: auto auto !important;
+            }
+        }
+
+        /* Big Timer Mode */
+        body.big-timer-mode header,
+        body.big-timer-mode .landscape-controls,
+        body.big-timer-mode .text-center {
+            display: none !important;
+        }
+
+        body.big-timer-mode .page-timer {
+            justify-content: center;
+            padding: 0 !important;
+        }
+
+        body.big-timer-mode .timer-layout {
+            gap: 0 !important;
+        }
+
+        /* Hide ring in big mode */
+        body.big-timer-mode .timer-ring-container svg {
+            display: none !important;
+        }
+
+        body.big-timer-mode .timer-ring-container {
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: none !important;
+            max-height: none !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            /* Above everything */
+        }
+
+        body.big-timer-mode #timer-display {
+            font-size: 55vmin !important;
+            /* ULTRA MASSIVE TEXT */
+            text-shadow: 0 0 40px var(--neon-cyan);
+        }
+
+        /* Progress Bar for Big Mode */
+        #big-timer-progress-bar {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 15px;
+            background-color: var(--neon-cyan);
+            width: 100%;
+            z-index: 60;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        body.big-timer-mode #big-timer-progress-bar {
+            display: block;
+        }
+
+        /* Big Timer Label */
+        #big-timer-label {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            /* Large but not distraction */
+            color: rgba(255, 255, 255, 0.5);
+            z-index: 60;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        body.big-timer-mode #big-timer-label {
+            display: block;
+        }
+    </style>
+</head>
+
+<body class="h-[100dvh] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
+    <!-- Big Mode Progress Bar -->
+    <div id="big-timer-progress-bar"></div>
+    <!-- Big Mode Label -->
+    <div id="big-timer-label"></div>
+
+    <div class="relative w-full max-w-4xl h-full sm:max-h-[90vh] glass-panel overflow-hidden">
+        <header
+            class="absolute top-0 left-0 w-full p-4 flex justify-between items-center border-b border-white/10 z-20 bg-dark-bg/80 backdrop-blur-md">
+            <h1 class="font-orbitron text-lg sm:text-xl neon-text-cyan tracking-widest">AETHER.IO</h1>
+            <button onclick="app.navigateTo('home')" id="home-btn"
+                class="hidden text-white/50 hover:text-white px-3 py-1">
+                <i class="fas fa-home text-lg"></i>
+            </button>
+        </header>
+
+        <!-- HOME -->
+        <div id="page-home" class="page p-6 pt-24">
+            <div id="circuit-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto"></div>
+            <div class="mt-8 max-w-2xl mx-auto space-y-3">
+                <button onclick="app.createCircuit()"
+                    class="w-full py-4 rounded-2xl border-2 border-dashed border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition">
+                    <i class="fas fa-plus mr-2"></i> NEW CIRCUIT
+                </button>
+                <button onclick="app.openScanner()"
+                    class="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition">
+                    <i class="fas fa-qrcode mr-2"></i> IMPORT VIA QR
+                </button>
+            </div>
+        </div>
+
+        <!-- EDITOR -->
+        <div id="page-editor" class="page p-6 pt-24 page-hidden">
+            <div class="max-w-2xl mx-auto">
+                <input id="circuit-name-input" type="text" placeholder="Circuit Name"
+                    class="bg-transparent text-2xl font-bold border-b border-white/20 focus:border-cyan-400 outline-none w-full text-white mb-6">
+                <div id="task-list" class="space-y-3 pb-24"></div>
+            </div>
+            <div class="fixed bottom-6 left-0 w-full px-6 flex flex-col items-center z-30">
+                <div class="w-full max-w-xl flex space-x-2 glass-panel p-2 border-white/20">
+                    <button onclick="app.openTaskModal('workout')"
+                        class="flex-1 py-3 neon-bg-cyan text-black font-bold rounded-xl text-xs uppercase">Workout</button>
+                    <button onclick="app.openTaskModal('break')"
+                        class="flex-1 py-3 bg-white/10 text-white font-bold rounded-xl text-xs border border-white/20 uppercase">Break</button>
+                    <button onclick="app.saveCircuit()"
+                        class="w-12 h-12 flex items-center justify-center bg-green-500 text-black rounded-xl"><i
+                            class="fas fa-save"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TIMER -->
+        <div id="page-timer" class="page page-hidden flex flex-col pt-16 sm:pt-20 overflow-hidden">
+            <div class="timer-layout flex flex-col items-center justify-center flex-1 space-y-4">
+                <div class="text-center">
+                    <h2 id="current-circuit-title" class="text-white/40 tracking-widest mb-1 uppercase text-sm">--</h2>
+                    <h1 id="current-task-name" class="text-3xl font-orbitron font-bold neon-text-cyan uppercase">READY
+                    </h1>
+                    <div id="next-task-info" class="text-xs text-white/30 mt-2 uppercase">Next: --</div>
+                </div>
+
+                <!-- ADDED GESTURE HANDLER HERE -->
+                <div id="timer-container-tap"
+                    class="timer-ring-container relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center cursor-pointer select-none">
+                    <svg class="w-full h-full -rotate-90 pointer-events-none">
+                        <circle cx="50%" cy="50%" r="45%" stroke="rgba(255,255,255,0.05)" stroke-width="8"
+                            fill="transparent" />
+                        <circle id="timer-progress" cx="50%" cy="50%" r="45%" stroke="var(--neon-cyan)" stroke-width="8"
+                            fill="transparent" stroke-dasharray="1000" stroke-dashoffset="0" stroke-linecap="round" />
+                    </svg>
+                    <span id="timer-display"
+                        class="absolute text-5xl font-orbitron font-bold text-white pointer-events-none">00:00</span>
+                </div>
+
+                <div class="flex space-x-2 sm:space-x-4 landscape:space-x-0 landscape-controls">
+                    <!-- REORDERED & ADDED SKIP BACK -->
+                    <button onclick="app.prevTask()"
+                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-lg sm:text-xl border border-white/10 hover:text-cyan-400 hover:border-cyan-400 transition order-1"><i
+                            class="fas fa-backward"></i></button>
+
+                    <button id="timer-ctrl-btn" onclick="app.toggleTimer()"
+                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-lg sm:text-xl order-2"><i
+                            class="fas fa-play"></i></button>
+
+                    <button onclick="app.skipTask()"
+                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-lg sm:text-xl border border-white/10 order-3"><i
+                            class="fas fa-forward"></i></button>
+
+                    <button onclick="app.stopTimer()"
+                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-lg sm:text-xl border border-white/10 order-4"><i
+                            class="fas fa-stop"></i></button>
+
+                    <button id="loop-btn" onclick="app.toggleLoop()"
+                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/5 flex items-center justify-center text-white/40 text-lg sm:text-xl border border-white/10 order-5"><i
+                            class="fas fa-redo"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL WITH WHEEL PICKER -->
+    <div id="task-modal"
+        class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-end justify-center z-50 opacity-0 pointer-events-none transition-opacity">
+        <div class="w-full max-w-md glass-panel p-6 rounded-t-[40px] transform translate-y-full transition-transform">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-center text-white">Add Stage</h3>
+            <input id="modal-task-name" type="text"
+                class="w-full bg-white/5 border border-white/10 p-3 rounded-xl mb-4 outline-none focus:border-cyan-400 text-white font-bold text-center">
+
+            <div class="flex items-center justify-center mb-6 space-x-8 bg-black/20 rounded-3xl p-4">
+                <div class="flex flex-col items-center">
+                    <span class="text-[10px] text-cyan-400 mb-1">MINUTES</span>
+                    <div id="picker-m" class="picker-container w-16"></div>
+                </div>
+                <div class="text-2xl text-white/20 font-orbitron">:</div>
+                <div class="flex flex-col items-center">
+                    <span class="text-[10px] text-cyan-400 mb-1">SECONDS</span>
+                    <div id="picker-s" class="picker-container w-16"></div>
+                </div>
+            </div>
+
+            <div class="flex space-x-3">
+                <button onclick="app.closeTaskModal()"
+                    class="flex-1 py-3 rounded-xl bg-white/5 font-bold text-white">CANCEL</button>
+                <button onclick="app.confirmTask()" class="flex-1 py-3 rounded-xl neon-bg-cyan text-black font-bold">ADD
+                    STAGE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR DISPLAY MODAL -->
+    <div id="qr-modal"
+        class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 opacity-0 pointer-events-none transition-opacity">
+        <div class="w-full max-w-xs glass-panel p-8 flex flex-col items-center text-center">
+            <h3 class="text-xl font-bold mb-2 text-white" id="qr-title">Share Circuit</h3>
+            <p class="text-white/40 text-xs mb-6">Scan this to import into Aether</p>
+            <div id="qr-container"
+                class="bg-white p-4 rounded-2xl mb-6 shadow-[0_0_30px_rgba(255,255,255,0.1)] overflow-hidden">
+                <div id="qr-code"></div>
+            </div>
+            <div class="w-full space-y-2">
+                <button onclick="app.shareLinkOnly()"
+                    class="w-full py-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 font-bold text-cyan-400">SHARE
+                    LINK</button>
+                <button onclick="app.closeQRModal()"
+                    class="w-full py-3 rounded-xl bg-white/10 font-bold text-white">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR SCANNER MODAL -->
+    <div id="scanner-modal"
+        class="fixed inset-0 bg-black z-[60] flex flex-col opacity-0 pointer-events-none transition-opacity">
+        <div class="p-6 flex justify-between items-center bg-black/50 backdrop-blur-md">
+            <h3 class="text-white font-bold font-orbitron">SCAN QR CODE</h3>
+            <button onclick="app.closeScanner()" class="text-white/50 hover:text-white"><i
+                    class="fas fa-times text-xl"></i></button>
+        </div>
+        <div id="reader" class="flex-1 bg-black"></div>
+        <div class="p-8 text-center bg-black/80">
+            <p class="text-white/40 text-sm">Position the QR code within the frame</p>
+        </div>
+    </div>
+
+    <script>
+        const app = (() => {
+            let db, circuits = [], activeCircuit = null, activeTaskIndex = 0;
+            let isTimerRunning = false, isLooping = false, timerInterval = null;
+            let endTime = 0, timeLeftWhenPaused = 0, totalTimeForTask = 0;
+
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const els = {
+                pages: { home: document.getElementById('page-home'), editor: document.getElementById('page-editor'), timer: document.getElementById('page-timer') },
+                homeBtn: document.getElementById('home-btn'),
+                circuitList: document.getElementById('circuit-list'),
+                circuitNameInput: document.getElementById('circuit-name-input'),
+                taskList: document.getElementById('task-list'),
+                modal: document.getElementById('task-modal'),
+                modalName: document.getElementById('modal-task-name'),
+                timerDisplay: document.getElementById('timer-display'),
+                timerProgress: document.getElementById('timer-progress'),
+                currentTaskName: document.getElementById('current-task-name'),
+                nextTaskInfo: document.getElementById('next-task-info'),
+                timerCtrlBtn: document.getElementById('timer-ctrl-btn'),
+                circuitTitle: document.getElementById('current-circuit-title'),
+                loopBtn: document.getElementById('loop-btn'),
+                pickerM: document.getElementById('picker-m'),
+                pickerS: document.getElementById('picker-s'),
+                qrModal: document.getElementById('qr-modal'),
+                qrCode: document.getElementById('qr-code'),
+                qrTitle: document.getElementById('qr-title'),
+                scannerModal: document.getElementById('scanner-modal'),
+                timerTapArea: document.getElementById('timer-container-tap'),
+                bigProgressBar: document.getElementById('big-timer-progress-bar'),
+                bigTimerLabel: document.getElementById('big-timer-label')
+            };
+            let html5QrCode = null, lastShareUrl = '';
+
+            // --- GESTURE LOGIC ---
+            let tapCount = 0;
+            let tapTimeout = null;
+            let touchStartX = 0;
+            let touchStartY = 0;
+
+            const handleTouchStart = (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            };
+
+            const handleTouchEnd = (e) => {
+                const touchEndX = e.changedTouches[0].screenX;
+                const touchEndY = e.changedTouches[0].screenY;
+                const diffX = touchEndX - touchStartX;
+                const diffY = touchEndY - touchStartY;
+
+                // Check for Swipe (if horizontal movement is significant)
+                if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+                    // Swipe Detected
+                    if (diffX > 0) {
+                        // Swipe Right -> Skip Forward (Next) - INVERTED
+                        app.skipTask();
+                    } else {
+                        // Swipe Left -> Skip Backward (Prev) - INVERTED
+                        app.prevTask();
+                    }
+                    return; // Don't process tap if swipe occurred
+                }
+
+                // If not a swipe, treat as Tap
+                // Simple debounce/tap counting
+                tapCount++;
+                if (tapCount === 1) {
+                    tapTimeout = setTimeout(() => {
+                        // Single Tap Triggered
+                        handleSingleTap();
+                        tapCount = 0;
+                    }, 300); // 300ms delay to wait for potential second tap
+                } else if (tapCount === 2) {
+                    // Double Tap Triggered
+                    clearTimeout(tapTimeout);
+                    handleDoubleTap();
+                    tapCount = 0;
+                }
+            };
+
+            // Mouse fallback for testing
+            const handleMouseClick = (e) => {
+                tapCount++;
+                if (tapCount === 1) {
+                    tapTimeout = setTimeout(() => {
+                        handleSingleTap();
+                        tapCount = 0;
+                    }, 300);
+                } else if (tapCount === 2) {
+                    clearTimeout(tapTimeout);
+                    handleDoubleTap();
+                    tapCount = 0;
+                }
+            };
+
+            const handleSingleTap = () => {
+                if (document.body.classList.contains('big-timer-mode')) {
+                    app.toggleTimer(); // Play/Pause in big mode
+                }
+            };
+
+            const handleDoubleTap = () => {
+                // Toggle Big Timer Mode
+                if (document.body.classList.contains('big-timer-mode')) {
+                    exitBigMode();
+                } else {
+                    toggleBigMode();
+                }
+            };
+
+            els.timerTapArea.addEventListener('touchstart', handleTouchStart);
+            els.timerTapArea.addEventListener('touchend', handleTouchEnd);
+            els.timerTapArea.addEventListener('click', (e) => {
+                if (e.pointerType === 'mouse') {
+                    handleMouseClick(e);
+                }
+            });
+
+            const toggleBigMode = () => {
+                document.body.classList.add('big-timer-mode');
+                // Also trigger browser fullscreen for maximum immersion
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log(`Error attempting to enable full-screen mode: ${err.message}`);
+                    });
+                }
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(e => console.log('Orient lock failed'));
+                }
+            };
+
+            const exitBigMode = () => {
+                document.body.classList.remove('big-timer-mode');
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                }
+                if (screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock();
+                }
+            };
+
+            // Listen for fullscreen changes (handles back button on Android)
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement && document.body.classList.contains('big-timer-mode')) {
+                    exitBigMode();
+                }
+            });
+
+            // --- WHEEL PICKER LOGIC ---
+            const setupPicker = (el, max) => {
+                el.innerHTML = '<div class="h-[50px]"></div>'; // Top spacer
+                for (let i = 0; i < max; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'picker-item';
+                    item.innerText = i.toString().padStart(2, '0');
+                    el.appendChild(item);
+                }
+                el.innerHTML += '<div class="h-[50px]"></div>'; // Bottom spacer
+
+                el.addEventListener('scroll', () => {
+                    const scrollPos = el.scrollTop;
+                    const index = Math.round(scrollPos / 50);
+                    Array.from(el.querySelectorAll('.picker-item')).forEach((item, i) => {
+                        item.classList.toggle('active', i === index);
+                    });
+                });
+            };
+
+            const getPickerValue = (el) => Math.round(el.scrollTop / 50);
+            const setPickerValue = (el, val) => el.scrollTop = val * 50;
+
+            // --- DATABASE ---
+            const initDB = () => {
+                const request = indexedDB.open('AetherDB_V2', 1);
+                request.onupgradeneeded = (e) => {
+                    db = e.target.result;
+                    db.createObjectStore('circuits', { keyPath: 'id' });
+                };
+                request.onsuccess = (e) => { db = e.target.result; loadFromDB(); };
+            };
+
+            const loadFromDB = () => {
+                const tx = db.transaction('circuits', 'readonly');
+                tx.objectStore('circuits').getAll().onsuccess = (e) => {
+                    circuits = e.target.result;
+                    renderHome();
+                };
+            };
+
+            const saveToDB = (c) => {
+                const tx = db.transaction('circuits', 'readwrite');
+                tx.objectStore('circuits').put(c);
+                tx.oncomplete = loadFromDB;
+            };
+
+            const deleteFromDB = (id) => {
+                const tx = db.transaction('circuits', 'readwrite');
+                tx.objectStore('circuits').delete(id);
+                tx.oncomplete = loadFromDB;
+            };
+
+            // --- NAVIGATION ---
+            const navigateTo = (pageId) => {
+                Object.values(els.pages).forEach(p => p.classList.add('page-hidden'));
+                els.pages[pageId].classList.remove('page-hidden');
+                els.homeBtn.style.display = pageId === 'home' ? 'none' : 'block';
+                if (pageId === 'home') { pauseTimer(); renderHome(); }
+            };
+
+            const renderHome = () => {
+                els.circuitList.innerHTML = '';
+                circuits.forEach(c => {
+                    const totalSec = c.tasks.reduce((a, b) => a + b.duration, 0);
+                    const div = document.createElement('div');
+                    div.className = 'glass-panel p-5 flex justify-between items-center cursor-pointer active:scale-95 transition hover:bg-white/10';
+                    div.onclick = () => { activeCircuit = c; setupTimer(); navigateTo('timer'); };
+                    div.innerHTML = `
+                        <div><h3 class="font-bold text-white text-xl">${c.name}</h3><p class="text-cyan-400/50 text-xs font-orbitron">${c.tasks.length} STAGES • ${formatTime(totalSec)}</p></div>
+                        <div class="flex space-x-2">
+                            <button onclick="event.stopPropagation(); app.shareCircuit('${c.id}')" class="text-white/40 hover:text-green-400 p-2"><i class="fas fa-share-nodes"></i></button>
+                            <button onclick="event.stopPropagation(); app.editCircuit('${c.id}')" class="text-white/40 hover:text-cyan-400 p-2"><i class="fas fa-edit"></i></button>
+                            <button onclick="event.stopPropagation(); app.deleteCircuit('${c.id}')" class="text-white/40 hover:text-red-400 p-2"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                    els.circuitList.appendChild(div);
+                });
+            };
+
+            const renderEditor = () => {
+                els.circuitNameInput.value = activeCircuit.name;
+                els.taskList.innerHTML = '';
+                activeCircuit.tasks.forEach((t, i) => {
+                    const div = document.createElement('div');
+                    div.className = `p-4 rounded-2xl flex justify-between items-center ${t.type === 'workout' ? 'bg-cyan-500/10 border-cyan-500/20' : 'bg-white/5 border-white/10'} border mb-2`;
+                    div.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center ${t.type === 'workout' ? 'bg-cyan-400 text-black' : 'bg-white/10 text-white'}"><i class="fas ${t.type === 'workout' ? 'fa-dumbbell' : 'fa-mug-hot'}"></i></div>
+                            <div><p class="font-bold text-white uppercase">${t.name}</p><p class="text-xs font-orbitron text-white/40">${formatTime(t.duration)}</p></div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <div class="flex flex-col space-y-1 mr-2">
+                                <button onclick="app.moveTask(${i},-1)" class="text-white/20 hover:text-white"><i class="fas fa-chevron-up text-xs"></i></button>
+                                <button onclick="app.moveTask(${i},1)" class="text-white/20 hover:text-white"><i class="fas fa-chevron-down text-xs"></i></button>
+                            </div>
+                            <button onclick="app.removeTask(${i})" class="text-white/20 hover:text-red-400 p-2"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                    els.taskList.appendChild(div);
+                });
+            };
+
+            // --- TIMER ---
+            const setupTimer = () => { activeTaskIndex = 0; loadTask(0); };
+
+            const loadTask = (index) => {
+                if (index >= activeCircuit.tasks.length) {
+                    if (isLooping) { activeTaskIndex = 0; loadTask(0); if (isTimerRunning) startTimer(); }
+                    else { finishCircuit(); }
+                    return;
+                }
+                const task = activeCircuit.tasks[index];
+                timeLeftWhenPaused = task.duration;
+                totalTimeForTask = task.duration;
+                els.currentTaskName.innerText = task.name;
+                els.circuitTitle.innerText = activeCircuit.name;
+                els.timerDisplay.innerText = formatTime(task.duration);
+                if (els.bigTimerLabel) els.bigTimerLabel.innerText = task.name; // Update Label
+                const next = activeCircuit.tasks[index + 1];
+                els.nextTaskInfo.innerText = next ? `Next: ${next.name}` : (isLooping ? 'Next: Restart' : 'Next: Finish');
+                updateProgress(1);
+            };
+
+            const startTimer = () => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                isTimerRunning = true;
+                endTime = Date.now() + (timeLeftWhenPaused * 1000);
+                timerInterval = setInterval(tick, 100);
+                updateControls();
+            };
+
+            const pauseTimer = () => {
+                isTimerRunning = false;
+                clearInterval(timerInterval);
+                timeLeftWhenPaused = (endTime - Date.now()) / 1000;
+                updateControls();
+            };
+
+            const tick = () => {
+                const remaining = (endTime - Date.now()) / 1000;
+                if (remaining <= 0) {
+                    playBeep();
+                    activeTaskIndex++;
+                    if (activeTaskIndex < activeCircuit.tasks.length || isLooping) {
+                        loadTask(activeTaskIndex);
+                        endTime = Date.now() + (timeLeftWhenPaused * 1000);
+                    } else { finishCircuit(); }
+                } else {
+                    els.timerDisplay.innerText = formatTime(Math.ceil(remaining));
+                    updateProgress(remaining / totalTimeForTask);
+                }
+            };
+
+            const updateProgress = (ratio) => {
+                els.timerProgress.style.strokeDashoffset = 1000 - (1000 * ratio);
+                if (els.bigProgressBar) els.bigProgressBar.style.width = `${ratio * 100}%`;
+            };
+
+            const updateControls = () => {
+                els.timerCtrlBtn.innerHTML = isTimerRunning ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+                els.timerCtrlBtn.classList.toggle('timer-active', isTimerRunning);
+                els.loopBtn.style.color = isLooping ? 'var(--neon-cyan)' : 'rgba(255,255,255,0.4)';
+            };
+
+            const playBeep = () => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.frequency.value = 880;
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            };
+
+            const finishCircuit = () => {
+                clearInterval(timerInterval);
+                isTimerRunning = false;
+                els.currentTaskName.innerText = "COMPLETE";
+                els.timerDisplay.innerText = "DONE";
+                if (els.bigTimerLabel) els.bigTimerLabel.innerText = "COMPLETE";
+                updateControls();
+                exitBigMode(); // Force exit big mode
+                setTimeout(() => navigateTo('home'), 2000);
+            };
+
+            const formatTime = (s) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
+
+            // Initialize Pickers
+            setupPicker(els.pickerM, 60);
+            setupPicker(els.pickerS, 60);
+            initDB();
+
+            return {
+                navigateTo,
+                createCircuit: () => { activeCircuit = { id: Date.now().toString(), name: '', tasks: [] }; renderEditor(); navigateTo('editor'); },
+                editCircuit: (id) => { activeCircuit = JSON.parse(JSON.stringify(circuits.find(c => c.id === id))); renderEditor(); navigateTo('editor'); },
+                deleteCircuit: (id) => { if (confirm('Delete?')) deleteFromDB(id); },
+                saveCircuit: () => { activeCircuit.name = els.circuitNameInput.value || 'New Circuit'; saveToDB(activeCircuit); navigateTo('home'); },
+                moveTask: (i, d) => { if (i + d < 0 || i + d >= activeCircuit.tasks.length) return;[activeCircuit.tasks[i], activeCircuit.tasks[i + d]] = [activeCircuit.tasks[i + d], activeCircuit.tasks[i]]; renderEditor(); },
+                removeTask: (i) => { activeCircuit.tasks.splice(i, 1); renderEditor(); },
+                openTaskModal: (type) => {
+                    app.mType = type;
+                    els.modalName.value = type === 'workout' ? 'Pushups' : 'Rest';
+                    setPickerValue(els.pickerM, 0); setPickerValue(els.pickerS, 30);
+                    els.modal.classList.remove('opacity-0', 'pointer-events-none');
+                    els.modal.firstElementChild.classList.remove('translate-y-full');
+                },
+                closeTaskModal: () => { els.modal.classList.add('opacity-0', 'pointer-events-none'); els.modal.firstElementChild.classList.add('translate-y-full'); },
+                confirmTask: () => {
+                    const d = (getPickerValue(els.pickerM) * 60) + getPickerValue(els.pickerS);
+                    if (d > 0) activeCircuit.tasks.push({ name: els.modalName.value, duration: d, type: app.mType });
+                    renderEditor(); app.closeTaskModal();
+                },
+                toggleTimer: () => isTimerRunning ? pauseTimer() : startTimer(),
+                stopTimer: () => { pauseTimer(); setupTimer(); navigateTo('home'); },
+                skipTask: () => {
+                    activeTaskIndex++;
+                    loadTask(activeTaskIndex);
+                    if (isTimerRunning) endTime = Date.now() + (timeLeftWhenPaused * 1000);
+                },
+                prevTask: () => {
+                    if (activeTaskIndex > 0) {
+                        activeTaskIndex--;
+                        loadTask(activeTaskIndex);
+                        if (isTimerRunning) endTime = Date.now() + (timeLeftWhenPaused * 1000);
+                    } else {
+                        // If already at start, maybe restart the task?
+                        loadTask(activeTaskIndex);
+                        if (isTimerRunning) endTime = Date.now() + (timeLeftWhenPaused * 1000);
+                    }
+                },
+                toggleLoop: () => { isLooping = !isLooping; updateControls(); },
+
+                // --- QR LOGIC ---
+                shareCircuit: (id) => {
+                    const c = circuits.find(circuit => String(circuit.id) === String(id));
+                    if (!c) {
+                        alert("Circuit not found!");
+                        return;
+                    }
+
+                    const payload = {
+                        v: 1,
+                        n: c.name,
+                        t: c.tasks.map(t => ({
+                            n: t.name,
+                            d: t.duration,
+                            ty: t.type
+                        }))
+                    };
+
+                    const data = JSON.stringify(payload);
+                    els.qrTitle.innerText = c.name;
+
+                    // Generate deep-link URL
+                    const encoded = btoa(encodeURIComponent(data));
+                    lastShareUrl = `${window.location.origin}${window.location.pathname}?import=${encoded}`;
+
+                    // Try native share first
+                    if (navigator.share) {
+                        navigator.share({
+                            title: `Aether Circuit: ${c.name}`,
+                            text: `Try my "${c.name}" circuit on Aether Timer`,
+                            url: lastShareUrl
+                        }).catch(err => {
+                            console.log("Share failed or cancelled", err);
+                            app.showQR(data);
+                        });
+                    } else {
+                        app.showQR(data);
+                    }
+                },
+                showQR: (data) => {
+                    const qrLib = window.QRCode;
+                    if (!qrLib) {
+                        alert("QR Library not loaded! Please check your internet connection.");
+                        return;
+                    }
+
+                    // Clear previous QR
+                    els.qrCode.innerHTML = '';
+
+                    try {
+                        new qrLib(els.qrCode, {
+                            text: data,
+                            width: 256,
+                            height: 256,
+                            colorDark: "#0a0b1e",
+                            colorLight: "#ffffff",
+                            correctLevel: qrLib.CorrectLevel.M
+                        });
+                        els.qrModal.classList.remove('opacity-0', 'pointer-events-none');
+                    } catch (e) {
+                        alert("Failed to generate QR: " + e.message);
+                    }
+                },
+                shareLinkOnly: () => {
+                    if (navigator.share) {
+                        navigator.share({
+                            url: lastShareUrl
+                        }).catch(() => { });
+                    } else {
+                        navigator.clipboard.writeText(lastShareUrl);
+                        alert("Share link copied to clipboard!");
+                    }
+                },
+                closeQRModal: () => {
+                    els.qrModal.classList.add('opacity-0', 'pointer-events-none');
+                },
+                openScanner: async () => {
+                    els.scannerModal.classList.remove('opacity-0', 'pointer-events-none');
+                    html5QrCode = new Html5Qrcode("reader");
+                    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+                    try {
+                        await html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                            app.importCircuitData(decodedText);
+                            app.closeScanner();
+                        });
+                    } catch (err) {
+                        alert("Camera error: " + err);
+                        app.closeScanner();
+                    }
+                },
+                closeScanner: async () => {
+                    if (html5QrCode) {
+                        try { await html5QrCode.stop(); } catch (e) { }
+                        html5QrCode = null;
+                    }
+                    els.scannerModal.classList.add('opacity-0', 'pointer-events-none');
+                },
+                importCircuitData: (data) => {
+                    try {
+                        const obj = JSON.parse(data);
+                        if (obj.v !== 1 || !obj.n || !Array.isArray(obj.t)) throw new Error("Invalid format");
+
+                        const newCircuit = {
+                            id: Date.now().toString(),
+                            name: obj.n,
+                            tasks: obj.t.map(t => ({
+                                name: t.n,
+                                duration: Math.min(Math.max(t.d, 1), 7200), // Clamp 1s - 2h
+                                type: (t.ty === 'workout' || t.ty === 'break') ? t.ty : 'workout'
+                            }))
+                        };
+
+                        saveToDB(newCircuit);
+                        alert(`Imported: ${newCircuit.name}`);
+                    } catch (e) {
+                        alert("Failed to parse QR data: " + e.message);
+                    }
+                }
+            };
+        })();
+
+        // --- AUTO-IMPORT ON STARTUP ---
+        (() => {
+            const params = new URLSearchParams(window.location.search);
+            const data = params.get("import");
+            if (!data) return;
+
+            // Wait a moment for DB to initialize
+            setTimeout(() => {
+                try {
+                    const json = decodeURIComponent(atob(data));
+                    app.importCircuitData(json);
+
+                    // Clean URL
+                    history.replaceState({}, document.title, window.location.pathname);
+                } catch (e) {
+                    console.error("Link import failed", e);
+                    alert("Invalid share link or data corrupted");
+                }
+            }, 500);
+        })();
+
+        // --- SERVICE WORKER REGISTRATION ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(reg => {
+                    console.log('SW registered!', reg);
+                }).catch(err => {
+                    console.log('SW registration failed!', err);
+                });
+            });
+        }
+    </script>
+</body>
+
+</html>
