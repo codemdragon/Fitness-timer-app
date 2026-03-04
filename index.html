@@ -210,526 +210,752 @@
             display: none;
             position: fixed;
             top: 20px;
-            left: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 61;
             font-family: 'Orbitron', sans-serif;
             font-size: 1.5rem;
-            /* Large but not distraction */
-            color: rgba(255, 255, 255, 0.5);
-            z-index: 60;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.7);
         }
 
         body.big-timer-mode #big-timer-label {
             display: block;
         }
+
+        /* Color Picker Styles */
+        .color-swatch {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 3px solid transparent;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+
+        .color-swatch.selected {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: var(--neon-cyan);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(28px);
+        }
+
+        /* Timer Flash Animation */
+        @keyframes timerFlash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        body.timer-flash {
+            animation: timerFlash 1s ease-in-out infinite;
+        }
     </style>
 </head>
 
-<body class="h-[100dvh] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
-    <!-- Big Mode Progress Bar -->
-    <div id="big-timer-progress-bar"></div>
-    <!-- Big Mode Label -->
-    <div id="big-timer-label"></div>
-
-    <div class="relative w-full max-w-4xl h-full sm:max-h-[90vh] glass-panel overflow-hidden">
-        <header
-            class="absolute top-0 left-0 w-full p-4 flex justify-between items-center border-b border-white/10 z-20 bg-dark-bg/80 backdrop-blur-md">
-            <h1 class="font-orbitron text-lg sm:text-xl neon-text-cyan tracking-widest">AETHER.IO</h1>
-            <button onclick="app.navigateTo('home')" id="home-btn"
-                class="hidden text-white/50 hover:text-white px-3 py-1">
-                <i class="fas fa-home text-lg"></i>
+<body>
+    <!-- HEADER -->
+    <header class="fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-black/60 to-transparent backdrop-blur-md p-4">
+        <div class="flex items-center justify-between max-w-md mx-auto">
+            <button onclick="app.navigateTo('home')" class="text-2xl font-orbitron neon-text-cyan">
+                <i class="fa-solid fa-stopwatch"></i> AETHER
             </button>
-        </header>
+            <button onclick="app.navigateTo('settings')" class="text-2xl neon-text-cyan">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+    </header>
 
-        <!-- HOME -->
-        <div id="page-home" class="page p-6 pt-24">
-            <div id="circuit-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto"></div>
-            <div class="mt-8 max-w-2xl mx-auto space-y-3">
-                <button onclick="app.createCircuit()"
-                    class="w-full py-4 rounded-2xl border-2 border-dashed border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition">
-                    <i class="fas fa-plus mr-2"></i> NEW CIRCUIT
+    <!-- HOME PAGE -->
+    <div id="page-home" class="page pt-20 px-4">
+        <div class="max-w-md mx-auto">
+            <button onclick="app.createCircuit()" class="w-full glass-panel p-6 mb-6 flex items-center justify-center gap-3 neon-text-cyan font-orbitron text-xl">
+                <i class="fa-solid fa-circle-plus text-3xl"></i> NEW CIRCUIT
+            </button>
+            <div id="circuit-list"></div>
+        </div>
+    </div>
+
+    <!-- EDITOR PAGE -->
+    <div id="page-editor" class="page page-hidden pt-20 px-4">
+        <div class="max-w-md mx-auto">
+            <div class="glass-panel p-6 mb-6">
+                <label class="block text-sm opacity-70 mb-2">Circuit Name</label>
+                <input type="text" id="circuit-name-input" class="w-full bg-transparent border-b-2 border-cyan-400 text-xl font-orbitron text-cyan-400 outline-none pb-2" placeholder="My Circuit">
+            </div>
+
+            <div class="flex gap-3 mb-6">
+                <button onclick="app.openTaskModal('workout')" class="flex-1 glass-panel p-4 flex items-center justify-center gap-2 text-green-400 font-orbitron">
+                    <i class="fa-solid fa-dumbbell"></i> EXERCISE
                 </button>
-                <button onclick="app.openScanner()"
-                    class="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition">
-                    <i class="fas fa-qrcode mr-2"></i> IMPORT VIA QR
+                <button onclick="app.openTaskModal('break')" class="flex-1 glass-panel p-4 flex items-center justify-center gap-2 text-orange-400 font-orbitron">
+                    <i class="fa-solid fa-mug-hot"></i> BREAK
                 </button>
             </div>
+
+            <div id="task-list"></div>
+
+            <button onclick="app.saveCircuit()" class="w-full neon-bg-cyan text-black font-orbitron font-bold p-5 rounded-3xl mt-6 text-xl">
+                SAVE CIRCUIT
+            </button>
         </div>
+    </div>
 
-        <!-- EDITOR -->
-        <div id="page-editor" class="page p-6 pt-24 page-hidden">
-            <div class="max-w-2xl mx-auto">
-                <input id="circuit-name-input" type="text" placeholder="Circuit Name"
-                    class="bg-transparent text-2xl font-bold border-b border-white/20 focus:border-cyan-400 outline-none w-full text-white mb-6">
-                <div id="task-list" class="space-y-3 pb-24"></div>
-            </div>
-            <div class="fixed bottom-6 left-0 w-full px-6 flex flex-col items-center z-30">
-                <div class="w-full max-w-xl flex space-x-2 glass-panel p-2 border-white/20">
-                    <button onclick="app.openTaskModal('workout')"
-                        class="flex-1 py-3 neon-bg-cyan text-black font-bold rounded-xl text-xs uppercase">Workout</button>
-                    <button onclick="app.openTaskModal('break')"
-                        class="flex-1 py-3 bg-white/10 text-white font-bold rounded-xl text-xs border border-white/20 uppercase">Break</button>
-                    <button onclick="app.saveCircuit()"
-                        class="w-12 h-12 flex items-center justify-center bg-green-500 text-black rounded-xl"><i
-                            class="fas fa-save"></i></button>
+    <!-- TIMER PAGE -->
+    <div id="page-timer" class="page page-hidden pt-20 flex flex-col">
+        <div class="timer-layout flex-1 flex flex-col items-center justify-start pt-8 gap-8">
+            <div class="timer-ring-container relative w-80 h-80 max-w-[80vw] max-h-[80vw]">
+                <svg class="w-full h-full -rotate-90">
+                    <circle cx="50%" cy="50%" r="45%" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8"></circle>
+                    <circle id="timer-ring" cx="50%" cy="50%" r="45%" fill="none" stroke="url(#gradient)" stroke-width="8" stroke-dasharray="1000" stroke-dashoffset="0" stroke-linecap="round"></circle>
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#00f3ff"></stop>
+                            <stop offset="100%" stop-color="#0066ff"></stop>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <div id="timer-display" class="text-7xl font-orbitron font-bold neon-text-cyan">00:00</div>
+                    <div id="task-name" class="text-xl opacity-70 mt-2">Ready</div>
                 </div>
             </div>
-        </div>
 
-        <!-- TIMER -->
-        <div id="page-timer" class="page page-hidden flex flex-col pt-16 sm:pt-20 overflow-hidden">
-            <div class="timer-layout flex flex-col items-center justify-center flex-1 space-y-4">
-                <div class="text-center">
-                    <h2 id="current-circuit-title" class="text-white/40 tracking-widest mb-1 uppercase text-sm">--</h2>
-                    <h1 id="current-task-name" class="text-3xl font-orbitron font-bold neon-text-cyan uppercase">READY
-                    </h1>
-                    <div id="next-task-info" class="text-xs text-white/30 mt-2 uppercase">Next: --</div>
-                </div>
+            <div class="landscape-controls w-full max-w-md px-4 flex gap-3">
+                <button id="prev-btn" onclick="app.prevTask()" class="flex-1 glass-panel p-4 rounded-2xl text-2xl opacity-50">
+                    <i class="fa-solid fa-backward-step"></i>
+                </button>
+                <button id="play-btn" onclick="app.toggleTimer()" class="flex-1 glass-panel p-4 rounded-2xl text-4xl neon-text-cyan">
+                    <i class="fa-solid fa-play"></i>
+                </button>
+                <button id="skip-btn" onclick="app.skipTask()" class="flex-1 glass-panel p-4 rounded-2xl text-2xl opacity-50">
+                    <i class="fa-solid fa-forward-step"></i>
+                </button>
+                <button id="loop-btn" onclick="app.toggleLoop()" class="flex-1 glass-panel p-4 rounded-2xl text-2xl opacity-50">
+                    <i class="fa-solid fa-repeat"></i>
+                </button>
+                <button onclick="app.toggleBigMode()" class="flex-1 glass-panel p-4 rounded-2xl text-2xl opacity-70">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
+                <button onclick="app.stopTimer()" class="flex-1 glass-panel p-4 rounded-2xl text-2xl text-red-400">
+                    <i class="fa-solid fa-stop"></i>
+                </button>
+            </div>
 
-                <!-- ADDED GESTURE HANDLER HERE -->
-                <div id="timer-container-tap"
-                    class="timer-ring-container relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center cursor-pointer select-none">
-                    <svg class="w-full h-full -rotate-90 pointer-events-none">
-                        <circle cx="50%" cy="50%" r="45%" stroke="rgba(255,255,255,0.05)" stroke-width="8"
-                            fill="transparent" />
-                        <circle id="timer-progress" cx="50%" cy="50%" r="45%" stroke="var(--neon-cyan)" stroke-width="8"
-                            fill="transparent" stroke-dasharray="1000" stroke-dashoffset="0" stroke-linecap="round" />
-                    </svg>
-                    <span id="timer-display"
-                        class="absolute text-5xl font-orbitron font-bold text-white pointer-events-none">00:00</span>
-                </div>
-
-                <div class="flex space-x-2 sm:space-x-4 landscape:space-x-0 landscape-controls">
-                    <!-- REORDERED & ADDED SKIP BACK -->
-                    <button onclick="app.prevTask()"
-                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-lg sm:text-xl border border-white/10 hover:text-cyan-400 hover:border-cyan-400 transition order-1"><i
-                            class="fas fa-backward"></i></button>
-
-                    <button id="timer-ctrl-btn" onclick="app.toggleTimer()"
-                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-lg sm:text-xl order-2"><i
-                            class="fas fa-play"></i></button>
-
-                    <button onclick="app.skipTask()"
-                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-lg sm:text-xl border border-white/10 order-3"><i
-                            class="fas fa-forward"></i></button>
-
-                    <button onclick="app.stopTimer()"
-                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/5 flex items-center justify-center text-white/60 text-lg sm:text-xl border border-white/10 order-4"><i
-                            class="fas fa-stop"></i></button>
-
-                    <button id="loop-btn" onclick="app.toggleLoop()"
-                        class="shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/5 flex items-center justify-center text-white/40 text-lg sm:text-xl border border-white/10 order-5"><i
-                            class="fas fa-redo"></i></button>
-                </div>
+            <div class="text-center opacity-70 text-sm">
+                <span id="task-counter">0 / 0</span>
             </div>
         </div>
     </div>
 
-    <!-- MODAL WITH WHEEL PICKER -->
-    <div id="task-modal"
-        class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-end justify-center z-50 opacity-0 pointer-events-none transition-opacity">
-        <div class="w-full max-w-md glass-panel p-6 rounded-t-[40px] transform translate-y-full transition-transform">
-            <h3 id="modal-title" class="text-xl font-bold mb-4 text-center text-white">Add Stage</h3>
-            <input id="modal-task-name" type="text"
-                class="w-full bg-white/5 border border-white/10 p-3 rounded-xl mb-4 outline-none focus:border-cyan-400 text-white font-bold text-center">
+    <!-- SETTINGS PAGE -->
+    <div id="page-settings" class="page page-hidden pt-20 px-4">
+        <div class="max-w-md mx-auto">
+            <h2 class="text-3xl font-orbitron neon-text-cyan mb-6">SETTINGS</h2>
 
-            <div class="flex items-center justify-center mb-6 space-x-8 bg-black/20 rounded-3xl p-4">
-                <div class="flex flex-col items-center">
-                    <span class="text-[10px] text-cyan-400 mb-1">MINUTES</span>
-                    <div id="picker-m" class="picker-container w-16"></div>
+            <!-- Timer Flash Section -->
+            <div class="glass-panel p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-xl font-orbitron">Timer Flash</h3>
+                        <p class="text-sm opacity-70">Screen pulses during timer</p>
+                    </div>
+                    <div class="toggle-switch" id="flash-toggle" onclick="app.toggleFlash()">
+                        <div class="toggle-slider"></div>
+                    </div>
                 </div>
-                <div class="text-2xl text-white/20 font-orbitron">:</div>
-                <div class="flex flex-col items-center">
-                    <span class="text-[10px] text-cyan-400 mb-1">SECONDS</span>
-                    <div id="picker-s" class="picker-container w-16"></div>
+
+                <div id="flash-settings" class="mt-6 space-y-6" style="display: none;">
+                    <!-- Exercise Color -->
+                    <div>
+                        <label class="block text-sm opacity-70 mb-3">Exercise Color</label>
+                        <div class="grid grid-cols-5 gap-3">
+                            <div class="color-swatch selected" style="background-color: #00f3ff;" data-color="#00f3ff" data-type="exercise" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #ff00ff;" data-color="#ff00ff" data-type="exercise" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #00ff00;" data-color="#00ff00" data-type="exercise" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #ffff00;" data-color="#ffff00" data-type="exercise" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #ff6600;" data-color="#ff6600" data-type="exercise" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #ff0000;" data-color="#ff0000" data-type="exercise" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #0066ff;" data-color="#0066ff" data-type="exercise" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #9933ff;" data-color="#9933ff" data-type="exercise" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #ffffff;" data-color="#ffffff" data-type="exercise" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #ff1493;" data-color="#ff1493" data-type="exercise" onclick="app.selectColor(this)"></div>
+                        </div>
+                    </div>
+
+                    <!-- Break Color -->
+                    <div>
+                        <label class="block text-sm opacity-70 mb-3">Break Color</label>
+                        <div class="grid grid-cols-5 gap-3">
+                            <div class="color-swatch" style="background-color: #00f3ff;" data-color="#00f3ff" data-type="break" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #ff00ff;" data-color="#ff00ff" data-type="break" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #00ff00;" data-color="#00ff00" data-type="break" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #ffff00;" data-color="#ffff00" data-type="break" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch selected" style="background-color: #ff6600;" data-color="#ff6600" data-type="break" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #ff0000;" data-color="#ff0000" data-type="break" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #0066ff;" data-color="#0066ff" data-type="break" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #9933ff;" data-color="#9933ff" data-type="break" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #ffffff;" data-color="#ffffff" data-type="break" onclick="app.selectColor(this)"></div>
+                            <div class="color-swatch" style="background-color: #ff1493;" data-color="#ff1493" data-type="break" onclick="app.selectColor(this)"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="flex space-x-3">
-                <button onclick="app.closeTaskModal()"
-                    class="flex-1 py-3 rounded-xl bg-white/5 font-bold text-white">CANCEL</button>
-                <button onclick="app.confirmTask()" class="flex-1 py-3 rounded-xl neon-bg-cyan text-black font-bold">ADD
-                    STAGE</button>
+            <!-- Countdown Beep Section -->
+            <div class="glass-panel p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-xl font-orbitron">Countdown Beep</h3>
+                        <p class="text-sm opacity-70">Beep on last seconds</p>
+                    </div>
+                    <div class="toggle-switch" id="beep-toggle" onclick="app.toggleBeep()">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+
+                <div id="beep-settings" class="mt-6" style="display: none;">
+                    <label class="block text-sm opacity-70 mb-3">Beep on last</label>
+                    <div class="picker-container glass-panel">
+                        <div class="picker-item" data-value="0">OFF</div>
+                        <div class="picker-item" data-value="3">3 sec</div>
+                        <div class="picker-item active" data-value="5">5 sec</div>
+                        <div class="picker-item" data-value="10">10 sec</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reset Settings -->
+            <button onclick="app.resetSettings()" class="w-full glass-panel p-4 text-red-400 font-orbitron">
+                <i class="fa-solid fa-rotate-left mr-2"></i> RESET TO DEFAULTS
+            </button>
+        </div>
+    </div>
+
+    <!-- Big Timer Progress Bar & Label -->
+    <div id="big-timer-progress-bar"></div>
+    <div id="big-timer-label">Exercise</div>
+
+    <!-- MODAL: ADD TASK -->
+    <div id="modal-add-task" class="fixed inset-0 bg-black/80 flex items-end justify-center z-50 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="w-full max-w-md bg-gradient-to-b from-gray-900 to-black rounded-t-3xl p-6 transform translate-y-full transition-transform duration-300">
+            <h3 class="text-2xl font-orbitron neon-text-cyan mb-4">Add Task</h3>
+            <input type="text" id="modal-task-name" class="w-full bg-transparent border-b-2 border-cyan-400 text-xl font-orbitron text-cyan-400 outline-none pb-2 mb-6" placeholder="Task Name">
+
+            <div class="flex gap-6 mb-6">
+                <div class="flex-1">
+                    <label class="block text-sm opacity-70 mb-2">Minutes</label>
+                    <div class="picker-container glass-panel" id="picker-minutes"></div>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm opacity-70 mb-2">Seconds</label>
+                    <div class="picker-container glass-panel" id="picker-seconds"></div>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="app.closeTaskModal()" class="flex-1 glass-panel p-4 rounded-2xl font-orbitron">CANCEL</button>
+                <button onclick="app.confirmTask()" class="flex-1 neon-bg-cyan text-black font-orbitron font-bold p-4 rounded-2xl">ADD</button>
             </div>
         </div>
     </div>
 
-    <!-- QR DISPLAY MODAL -->
-    <div id="qr-modal"
-        class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 opacity-0 pointer-events-none transition-opacity">
-        <div class="w-full max-w-xs glass-panel p-8 flex flex-col items-center text-center">
-            <h3 class="text-xl font-bold mb-2 text-white" id="qr-title">Share Circuit</h3>
-            <p class="text-white/40 text-xs mb-6">Scan this to import into Aether</p>
-            <div id="qr-container"
-                class="bg-white p-4 rounded-2xl mb-6 shadow-[0_0_30px_rgba(255,255,255,0.1)] overflow-hidden">
-                <div id="qr-code"></div>
-            </div>
-            <div class="w-full space-y-2">
-                <button onclick="app.shareLinkOnly()"
-                    class="w-full py-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 font-bold text-cyan-400">SHARE
-                    LINK</button>
-                <button onclick="app.closeQRModal()"
-                    class="w-full py-3 rounded-xl bg-white/10 font-bold text-white">CLOSE</button>
+    <!-- MODAL: QR CODE -->
+    <div id="qr-modal" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50 opacity-0 pointer-events-none transition-opacity duration-300 p-6">
+        <div class="glass-panel p-8 max-w-md w-full text-center">
+            <h3 id="qr-title" class="text-2xl font-orbitron neon-text-cyan mb-6"></h3>
+            <div id="qr-code" class="bg-white p-4 rounded-2xl inline-block mb-6"></div>
+            <div class="flex gap-3">
+                <button onclick="app.shareLinkOnly()" class="flex-1 glass-panel p-4 rounded-2xl font-orbitron">
+                    <i class="fa-solid fa-share-nodes mr-2"></i> SHARE
+                </button>
+                <button onclick="app.closeQRModal()" class="flex-1 neon-bg-cyan text-black font-orbitron font-bold p-4 rounded-2xl">CLOSE</button>
             </div>
         </div>
     </div>
 
-    <!-- QR SCANNER MODAL -->
-    <div id="scanner-modal"
-        class="fixed inset-0 bg-black z-[60] flex flex-col opacity-0 pointer-events-none transition-opacity">
-        <div class="p-6 flex justify-between items-center bg-black/50 backdrop-blur-md">
-            <h3 class="text-white font-bold font-orbitron">SCAN QR CODE</h3>
-            <button onclick="app.closeScanner()" class="text-white/50 hover:text-white"><i
-                    class="fas fa-times text-xl"></i></button>
-        </div>
-        <div id="reader" class="flex-1 bg-black"></div>
-        <div class="p-8 text-center bg-black/80">
-            <p class="text-white/40 text-sm">Position the QR code within the frame</p>
-        </div>
+    <!-- MODAL: QR SCANNER -->
+    <div id="scanner-modal" class="fixed inset-0 bg-black/95 flex flex-col items-center justify-center z-50 opacity-0 pointer-events-none transition-opacity duration-300 p-6">
+        <h3 class="text-2xl font-orbitron neon-text-cyan mb-6">SCAN QR CODE</h3>
+        <div id="reader" class="w-full max-w-md mb-6"></div>
+        <button onclick="app.closeScanner()" class="neon-bg-cyan text-black font-orbitron font-bold px-8 py-4 rounded-2xl">CANCEL</button>
     </div>
 
     <script>
         const app = (() => {
-            let db, circuits = [], activeCircuit = null, activeTaskIndex = 0;
-            let isTimerRunning = false, isLooping = false, timerInterval = null;
-            let endTime = 0, timeLeftWhenPaused = 0, totalTimeForTask = 0;
+            // --- SETTINGS STATE ---
+            let settings = {
+                flashEnabled: false,
+                exerciseColor: '#00f3ff',
+                breakColor: '#ff6600',
+                beepEnabled: false,
+                beepSeconds: 5
+            };
 
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            // Load settings from localStorage
+            const loadSettings = () => {
+                const saved = localStorage.getItem('aether-settings');
+                if (saved) {
+                    settings = { ...settings, ...JSON.parse(saved) };
+                }
+                applySettings();
+            };
+
+            const saveSettings = () => {
+                localStorage.setItem('aether-settings', JSON.stringify(settings));
+            };
+
+            const applySettings = () => {
+                // Update UI toggles
+                const flashToggle = document.getElementById('flash-toggle');
+                const beepToggle = document.getElementById('beep-toggle');
+                const flashSettings = document.getElementById('flash-settings');
+                const beepSettings = document.getElementById('beep-settings');
+
+                if (settings.flashEnabled) {
+                    flashToggle.classList.add('active');
+                    flashSettings.style.display = 'block';
+                } else {
+                    flashToggle.classList.remove('active');
+                    flashSettings.style.display = 'none';
+                }
+
+                if (settings.beepEnabled) {
+                    beepToggle.classList.add('active');
+                    beepSettings.style.display = 'block';
+                } else {
+                    beepToggle.classList.remove('active');
+                    beepSettings.style.display = 'none';
+                }
+
+                // Update selected colors
+                document.querySelectorAll('.color-swatch').forEach(swatch => {
+                    const color = swatch.dataset.color;
+                    const type = swatch.dataset.type;
+                    if (type === 'exercise' && color === settings.exerciseColor) {
+                        swatch.classList.add('selected');
+                    } else if (type === 'break' && color === settings.breakColor) {
+                        swatch.classList.add('selected');
+                    } else if (swatch.dataset.type === type) {
+                        swatch.classList.remove('selected');
+                    }
+                });
+            };
+
+            // Audio context for beeps
+            let audioContext = null;
+            const playBeep = (frequency = 800, duration = 100) => {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration / 1000);
+            };
+
+            // --- CORE STATE ---
+            let db, circuits = [], activeCircuit = null, activeTaskIndex = 0, timeLeftWhenPaused = 0, endTime = 0, isTimerRunning = false, isLooping = false, isBigMode = false, html5QrCode = null, lastShareUrl = '', lastBeepTime = -1;
+
+            // --- DOM REFS ---
             const els = {
-                pages: { home: document.getElementById('page-home'), editor: document.getElementById('page-editor'), timer: document.getElementById('page-timer') },
-                homeBtn: document.getElementById('home-btn'),
+                pages: ['home', 'editor', 'timer', 'settings'].reduce((o, p) => ({ ...o, [p]: document.getElementById('page-' + p) }), {}),
                 circuitList: document.getElementById('circuit-list'),
-                circuitNameInput: document.getElementById('circuit-name-input'),
                 taskList: document.getElementById('task-list'),
-                modal: document.getElementById('task-modal'),
+                circuitNameInput: document.getElementById('circuit-name-input'),
+                modal: document.getElementById('modal-add-task'),
                 modalName: document.getElementById('modal-task-name'),
+                pickerM: document.getElementById('picker-minutes'),
+                pickerS: document.getElementById('picker-seconds'),
                 timerDisplay: document.getElementById('timer-display'),
-                timerProgress: document.getElementById('timer-progress'),
-                currentTaskName: document.getElementById('current-task-name'),
-                nextTaskInfo: document.getElementById('next-task-info'),
-                timerCtrlBtn: document.getElementById('timer-ctrl-btn'),
-                circuitTitle: document.getElementById('current-circuit-title'),
+                taskName: document.getElementById('task-name'),
+                taskCounter: document.getElementById('task-counter'),
+                timerRing: document.getElementById('timer-ring'),
+                playBtn: document.getElementById('play-btn'),
                 loopBtn: document.getElementById('loop-btn'),
-                pickerM: document.getElementById('picker-m'),
-                pickerS: document.getElementById('picker-s'),
+                prevBtn: document.getElementById('prev-btn'),
+                skipBtn: document.getElementById('skip-btn'),
                 qrModal: document.getElementById('qr-modal'),
                 qrCode: document.getElementById('qr-code'),
                 qrTitle: document.getElementById('qr-title'),
                 scannerModal: document.getElementById('scanner-modal'),
-                timerTapArea: document.getElementById('timer-container-tap'),
-                bigProgressBar: document.getElementById('big-timer-progress-bar'),
+                bigTimerProgressBar: document.getElementById('big-timer-progress-bar'),
                 bigTimerLabel: document.getElementById('big-timer-label')
             };
-            let html5QrCode = null, lastShareUrl = '';
 
-            // --- GESTURE LOGIC ---
-            let tapCount = 0;
-            let tapTimeout = null;
-            let touchStartX = 0;
-            let touchStartY = 0;
-
-            const handleTouchStart = (e) => {
-                touchStartX = e.changedTouches[0].screenX;
-                touchStartY = e.changedTouches[0].screenY;
+            // --- NAVIGATION ---
+            const navigateTo = (page) => {
+                Object.keys(els.pages).forEach(p => els.pages[p].classList.toggle('page-hidden', p !== page));
+                if (page === 'home') renderHome();
+                if (page === 'settings') applySettings();
             };
 
-            const handleTouchEnd = (e) => {
-                const touchEndX = e.changedTouches[0].screenX;
-                const touchEndY = e.changedTouches[0].screenY;
-                const diffX = touchEndX - touchStartX;
-                const diffY = touchEndY - touchStartY;
-
-                // Check for Swipe (if horizontal movement is significant)
-                if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
-                    // Swipe Detected
-                    if (diffX > 0) {
-                        // Swipe Right -> Skip Forward (Next) - INVERTED
-                        app.skipTask();
-                    } else {
-                        // Swipe Left -> Skip Backward (Prev) - INVERTED
-                        app.prevTask();
-                    }
-                    return; // Don't process tap if swipe occurred
-                }
-
-                // If not a swipe, treat as Tap
-                // Simple debounce/tap counting
-                tapCount++;
-                if (tapCount === 1) {
-                    tapTimeout = setTimeout(() => {
-                        // Single Tap Triggered
-                        handleSingleTap();
-                        tapCount = 0;
-                    }, 300); // 300ms delay to wait for potential second tap
-                } else if (tapCount === 2) {
-                    // Double Tap Triggered
-                    clearTimeout(tapTimeout);
-                    handleDoubleTap();
-                    tapCount = 0;
-                }
-            };
-
-            // Mouse fallback for testing
-            const handleMouseClick = (e) => {
-                tapCount++;
-                if (tapCount === 1) {
-                    tapTimeout = setTimeout(() => {
-                        handleSingleTap();
-                        tapCount = 0;
-                    }, 300);
-                } else if (tapCount === 2) {
-                    clearTimeout(tapTimeout);
-                    handleDoubleTap();
-                    tapCount = 0;
-                }
-            };
-
-            const handleSingleTap = () => {
-                if (document.body.classList.contains('big-timer-mode')) {
-                    app.toggleTimer(); // Play/Pause in big mode
-                }
-            };
-
-            const handleDoubleTap = () => {
-                // Toggle Big Timer Mode
-                if (document.body.classList.contains('big-timer-mode')) {
-                    exitBigMode();
-                } else {
-                    toggleBigMode();
-                }
-            };
-
-            els.timerTapArea.addEventListener('touchstart', handleTouchStart);
-            els.timerTapArea.addEventListener('touchend', handleTouchEnd);
-            els.timerTapArea.addEventListener('click', (e) => {
-                if (e.pointerType === 'mouse') {
-                    handleMouseClick(e);
-                }
-            });
-
-            const toggleBigMode = () => {
-                document.body.classList.add('big-timer-mode');
-                // Also trigger browser fullscreen for maximum immersion
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch(err => {
-                        console.log(`Error attempting to enable full-screen mode: ${err.message}`);
-                    });
-                }
-                if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation.lock('landscape').catch(e => console.log('Orient lock failed'));
-                }
-            };
-
-            const exitBigMode = () => {
-                document.body.classList.remove('big-timer-mode');
-                if (document.fullscreenElement) {
-                    document.exitFullscreen();
-                }
-                if (screen.orientation && screen.orientation.unlock) {
-                    screen.orientation.unlock();
-                }
-            };
-
-            // Listen for fullscreen changes (handles back button on Android)
-            document.addEventListener('fullscreenchange', () => {
-                if (!document.fullscreenElement && document.body.classList.contains('big-timer-mode')) {
-                    exitBigMode();
-                }
-            });
-
-            // --- WHEEL PICKER LOGIC ---
-            const setupPicker = (el, max) => {
-                el.innerHTML = '<div class="h-[50px]"></div>'; // Top spacer
-                for (let i = 0; i < max; i++) {
-                    const item = document.createElement('div');
-                    item.className = 'picker-item';
-                    item.innerText = i.toString().padStart(2, '0');
-                    el.appendChild(item);
-                }
-                el.innerHTML += '<div class="h-[50px]"></div>'; // Bottom spacer
-
-                el.addEventListener('scroll', () => {
-                    const scrollPos = el.scrollTop;
-                    const index = Math.round(scrollPos / 50);
-                    Array.from(el.querySelectorAll('.picker-item')).forEach((item, i) => {
-                        item.classList.toggle('active', i === index);
-                    });
-                });
-            };
-
-            const getPickerValue = (el) => Math.round(el.scrollTop / 50);
-            const setPickerValue = (el, val) => el.scrollTop = val * 50;
-
-            // --- DATABASE ---
+            // --- INDEXEDDB SETUP ---
             const initDB = () => {
-                const request = indexedDB.open('AetherDB_V2', 1);
-                request.onupgradeneeded = (e) => {
-                    db = e.target.result;
-                    db.createObjectStore('circuits', { keyPath: 'id' });
-                };
-                request.onsuccess = (e) => { db = e.target.result; loadFromDB(); };
+                const req = indexedDB.open('AetherDB', 1);
+                req.onupgradeneeded = (e) => e.target.result.createObjectStore('circuits', { keyPath: 'id' });
+                req.onsuccess = (e) => { db = e.target.result; loadAllCircuits(); };
+                req.onerror = () => alert('DB Error!');
             };
 
-            const loadFromDB = () => {
+            const loadAllCircuits = () => {
                 const tx = db.transaction('circuits', 'readonly');
-                tx.objectStore('circuits').getAll().onsuccess = (e) => {
-                    circuits = e.target.result;
-                    renderHome();
-                };
+                const store = tx.objectStore('circuits');
+                const req = store.getAll();
+                req.onsuccess = () => { circuits = req.result; renderHome(); };
             };
 
-            const saveToDB = (c) => {
+            const saveToDB = (circuit) => {
                 const tx = db.transaction('circuits', 'readwrite');
-                tx.objectStore('circuits').put(c);
-                tx.oncomplete = loadFromDB;
+                tx.objectStore('circuits').put(circuit);
+                tx.oncomplete = () => loadAllCircuits();
             };
 
             const deleteFromDB = (id) => {
                 const tx = db.transaction('circuits', 'readwrite');
                 tx.objectStore('circuits').delete(id);
-                tx.oncomplete = loadFromDB;
+                tx.oncomplete = () => loadAllCircuits();
             };
 
-            // --- NAVIGATION ---
-            const navigateTo = (pageId) => {
-                Object.values(els.pages).forEach(p => p.classList.add('page-hidden'));
-                els.pages[pageId].classList.remove('page-hidden');
-                els.homeBtn.style.display = pageId === 'home' ? 'none' : 'block';
-                if (pageId === 'home') { pauseTimer(); renderHome(); }
-            };
-
+            // --- RENDERING ---
             const renderHome = () => {
-                els.circuitList.innerHTML = '';
-                circuits.forEach(c => {
-                    const totalSec = c.tasks.reduce((a, b) => a + b.duration, 0);
-                    const div = document.createElement('div');
-                    div.className = 'glass-panel p-5 flex justify-between items-center cursor-pointer active:scale-95 transition hover:bg-white/10';
-                    div.onclick = () => { activeCircuit = c; setupTimer(); navigateTo('timer'); };
-                    div.innerHTML = `
-                        <div><h3 class="font-bold text-white text-xl">${c.name}</h3><p class="text-cyan-400/50 text-xs font-orbitron">${c.tasks.length} STAGES • ${formatTime(totalSec)}</p></div>
-                        <div class="flex space-x-2">
-                            <button onclick="event.stopPropagation(); app.shareCircuit('${c.id}')" class="text-white/40 hover:text-green-400 p-2"><i class="fas fa-share-nodes"></i></button>
-                            <button onclick="event.stopPropagation(); app.editCircuit('${c.id}')" class="text-white/40 hover:text-cyan-400 p-2"><i class="fas fa-edit"></i></button>
-                            <button onclick="event.stopPropagation(); app.deleteCircuit('${c.id}')" class="text-white/40 hover:text-red-400 p-2"><i class="fas fa-trash"></i></button>
-                        </div>
-                    `;
-                    els.circuitList.appendChild(div);
-                });
+                if (circuits.length === 0) {
+                    els.circuitList.innerHTML = '<div class="glass-panel p-8 text-center opacity-50">No circuits yet. Create one!</div>';
+                } else {
+                    els.circuitList.innerHTML = circuits.map(c => {
+                        const total = c.tasks.reduce((sum, t) => sum + t.duration, 0);
+                        const m = Math.floor(total / 60);
+                        const s = total % 60;
+                        return `
+                            <div class="glass-panel p-6 mb-4">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex-1">
+                                        <h3 class="text-xl font-orbitron neon-text-cyan">${c.name}</h3>
+                                        <p class="text-sm opacity-70">${c.tasks.length} tasks • ${m}m ${s}s</p>
+                                    </div>
+                                    <button onclick="app.shareCircuit('${c.id}')" class="text-2xl ml-3">
+                                        <i class="fa-solid fa-share-nodes"></i>
+                                    </button>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="app.runCircuit('${c.id}')" class="flex-1 bg-green-600/30 text-green-400 p-3 rounded-xl font-orbitron">
+                                        <i class="fa-solid fa-play mr-2"></i> START
+                                    </button>
+                                    <button onclick="app.editCircuit('${c.id}')" class="flex-1 bg-blue-600/30 text-blue-400 p-3 rounded-xl font-orbitron">
+                                        <i class="fa-solid fa-pen mr-2"></i> EDIT
+                                    </button>
+                                    <button onclick="app.deleteCircuit('${c.id}')" class="flex-1 bg-red-600/30 text-red-400 p-3 rounded-xl font-orbitron">
+                                        <i class="fa-solid fa-trash mr-2"></i> DEL
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                // Add QR scan button at bottom
+                els.circuitList.innerHTML += `
+                    <button onclick="app.openScanner()" class="w-full glass-panel p-6 mt-4 flex items-center justify-center gap-3 text-purple-400 font-orbitron text-xl">
+                        <i class="fa-solid fa-qrcode text-3xl"></i> SCAN QR CODE
+                    </button>
+                `;
             };
 
             const renderEditor = () => {
                 els.circuitNameInput.value = activeCircuit.name;
-                els.taskList.innerHTML = '';
-                activeCircuit.tasks.forEach((t, i) => {
-                    const div = document.createElement('div');
-                    div.className = `p-4 rounded-2xl flex justify-between items-center ${t.type === 'workout' ? 'bg-cyan-500/10 border-cyan-500/20' : 'bg-white/5 border-white/10'} border mb-2`;
-                    div.innerHTML = `
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center ${t.type === 'workout' ? 'bg-cyan-400 text-black' : 'bg-white/10 text-white'}"><i class="fas ${t.type === 'workout' ? 'fa-dumbbell' : 'fa-mug-hot'}"></i></div>
-                            <div><p class="font-bold text-white uppercase">${t.name}</p><p class="text-xs font-orbitron text-white/40">${formatTime(t.duration)}</p></div>
-                        </div>
-                        <div class="flex space-x-2">
-                            <div class="flex flex-col space-y-1 mr-2">
-                                <button onclick="app.moveTask(${i},-1)" class="text-white/20 hover:text-white"><i class="fas fa-chevron-up text-xs"></i></button>
-                                <button onclick="app.moveTask(${i},1)" class="text-white/20 hover:text-white"><i class="fas fa-chevron-down text-xs"></i></button>
+                els.taskList.innerHTML = activeCircuit.tasks.map((t, i) => {
+                    const m = Math.floor(t.duration / 60);
+                    const s = t.duration % 60;
+                    const color = t.type === 'workout' ? 'text-green-400' : 'text-orange-400';
+                    const icon = t.type === 'workout' ? 'fa-dumbbell' : 'fa-mug-hot';
+                    return `
+                        <div class="glass-panel p-4 mb-3 flex items-center justify-between">
+                            <div class="flex items-center gap-3 flex-1">
+                                <i class="fa-solid ${icon} ${color} text-xl"></i>
+                                <div>
+                                    <div class="font-orbitron">${t.name}</div>
+                                    <div class="text-sm opacity-70">${m}m ${s}s</div>
+                                </div>
                             </div>
-                            <button onclick="app.removeTask(${i})" class="text-white/20 hover:text-red-400 p-2"><i class="fas fa-trash"></i></button>
+                            <div class="flex gap-2">
+                                ${i > 0 ? `<button onclick="app.moveTask(${i}, -1)" class="px-3 py-2"><i class="fa-solid fa-chevron-up"></i></button>` : ''}
+                                ${i < activeCircuit.tasks.length - 1 ? `<button onclick="app.moveTask(${i}, 1)" class="px-3 py-2"><i class="fa-solid fa-chevron-down"></i></button>` : ''}
+                                <button onclick="app.removeTask(${i})" class="px-3 py-2 text-red-400"><i class="fa-solid fa-trash"></i></button>
+                            </div>
                         </div>
                     `;
-                    els.taskList.appendChild(div);
-                });
+                }).join('') || '<div class="glass-panel p-8 text-center opacity-50">Add some tasks!</div>';
             };
 
-            // --- TIMER ---
-            const setupTimer = () => { activeTaskIndex = 0; loadTask(0); };
+            // --- TIMER PICKER ---
+            const setupPicker = (el, max) => {
+                for (let i = 0; i < max; i++) {
+                    const div = document.createElement('div');
+                    div.className = 'picker-item';
+                    div.dataset.value = i;
+                    div.textContent = i.toString().padStart(2, '0');
+                    el.appendChild(div);
+                }
+
+                // Scroll handler
+                const updateActive = () => {
+                    const scrollTop = el.scrollTop;
+                    const items = [...el.children];
+                    items.forEach((item, idx) => {
+                        const offset = Math.abs(scrollTop - idx * 50);
+                        item.classList.toggle('active', offset < 25);
+                    });
+                };
+
+                el.addEventListener('scroll', updateActive);
+                updateActive();
+            };
+
+            const setPickerValue = (el, val) => {
+                el.scrollTop = val * 50;
+            };
+
+            const getPickerValue = (el) => Math.round(el.scrollTop / 50);
+
+            // --- TIMER LOGIC ---
+            const runCircuit = (id) => {
+                activeCircuit = circuits.find(c => c.id === id);
+                if (!activeCircuit || activeCircuit.tasks.length === 0) return alert('No tasks!');
+                activeTaskIndex = 0;
+                setupTimer();
+                navigateTo('timer');
+            };
+
+            const setupTimer = () => {
+                isTimerRunning = false;
+                timeLeftWhenPaused = 0;
+                loadTask(activeTaskIndex);
+                updateControls();
+            };
 
             const loadTask = (index) => {
-                if (index >= activeCircuit.tasks.length) {
-                    if (isLooping) { activeTaskIndex = 0; loadTask(0); if (isTimerRunning) startTimer(); }
-                    else { finishCircuit(); }
+                if (!activeCircuit || index >= activeCircuit.tasks.length) {
+                    if (isLooping && index >= activeCircuit.tasks.length) {
+                        activeTaskIndex = 0;
+                        loadTask(0);
+                    } else {
+                        completeCircuit();
+                    }
                     return;
                 }
+
                 const task = activeCircuit.tasks[index];
                 timeLeftWhenPaused = task.duration;
-                totalTimeForTask = task.duration;
-                els.currentTaskName.innerText = task.name;
-                els.circuitTitle.innerText = activeCircuit.name;
-                els.timerDisplay.innerText = formatTime(task.duration);
-                if (els.bigTimerLabel) els.bigTimerLabel.innerText = task.name; // Update Label
-                const next = activeCircuit.tasks[index + 1];
-                els.nextTaskInfo.innerText = next ? `Next: ${next.name}` : (isLooping ? 'Next: Restart' : 'Next: Finish');
-                updateProgress(1);
+                els.timerDisplay.textContent = formatTime(timeLeftWhenPaused);
+                els.taskName.textContent = task.name;
+                els.taskCounter.textContent = `${index + 1} / ${activeCircuit.tasks.length}`;
+                els.bigTimerLabel.textContent = task.type === 'workout' ? 'Exercise' : 'Break';
+                updateRing(1);
+                lastBeepTime = -1; // Reset beep tracker
+
+                // Apply flash color if enabled
+                if (settings.flashEnabled) {
+                    const color = task.type === 'workout' ? settings.exerciseColor : settings.breakColor;
+                    document.body.style.backgroundColor = color;
+                }
             };
 
             const startTimer = () => {
-                if (audioCtx.state === 'suspended') audioCtx.resume();
+                if (!activeCircuit) return;
                 isTimerRunning = true;
                 endTime = Date.now() + (timeLeftWhenPaused * 1000);
-                timerInterval = setInterval(tick, 100);
-                updateControls();
+                els.playBtn.querySelector('i').className = 'fa-solid fa-pause';
+                els.timerDisplay.classList.add('timer-active');
+                if (settings.flashEnabled) {
+                    document.body.classList.add('timer-flash');
+                }
+                requestAnimationFrame(updateTimer);
             };
 
             const pauseTimer = () => {
                 isTimerRunning = false;
-                clearInterval(timerInterval);
-                timeLeftWhenPaused = (endTime - Date.now()) / 1000;
-                updateControls();
+                els.playBtn.querySelector('i').className = 'fa-solid fa-play';
+                els.timerDisplay.classList.remove('timer-active');
+                document.body.classList.remove('timer-flash');
             };
 
-            const tick = () => {
-                const remaining = (endTime - Date.now()) / 1000;
-                if (remaining <= 0) {
-                    playBeep();
-                    activeTaskIndex++;
-                    if (activeTaskIndex < activeCircuit.tasks.length || isLooping) {
-                        loadTask(activeTaskIndex);
-                        endTime = Date.now() + (timeLeftWhenPaused * 1000);
-                    } else { finishCircuit(); }
-                } else {
-                    els.timerDisplay.innerText = formatTime(Math.ceil(remaining));
-                    updateProgress(remaining / totalTimeForTask);
+            const updateTimer = () => {
+                if (!isTimerRunning) return;
+
+                const now = Date.now();
+                timeLeftWhenPaused = Math.max(0, (endTime - now) / 1000);
+                els.timerDisplay.textContent = formatTime(timeLeftWhenPaused);
+
+                const task = activeCircuit.tasks[activeTaskIndex];
+                const progress = timeLeftWhenPaused / task.duration;
+                updateRing(progress);
+
+                // Update big mode progress bar
+                if (isBigMode) {
+                    els.bigTimerProgressBar.style.width = (progress * 100) + '%';
                 }
+
+                // Countdown beep
+                if (settings.beepEnabled && settings.beepSeconds > 0) {
+                    const secondsLeft = Math.ceil(timeLeftWhenPaused);
+                    if (secondsLeft <= settings.beepSeconds && secondsLeft !== lastBeepTime && secondsLeft > 0) {
+                        playBeep(secondsLeft === 1 ? 1200 : 800, 150);
+                        lastBeepTime = secondsLeft;
+                    }
+                }
+
+                if (timeLeftWhenPaused <= 0) {
+                    activeTaskIndex++;
+                    loadTask(activeTaskIndex);
+                    if (activeTaskIndex < activeCircuit.tasks.length || isLooping) {
+                        endTime = Date.now() + (timeLeftWhenPaused * 1000);
+                    } else {
+                        pauseTimer();
+                        return;
+                    }
+                }
+
+                requestAnimationFrame(updateTimer);
             };
 
-            const updateProgress = (ratio) => {
-                els.timerProgress.style.strokeDashoffset = 1000 - (1000 * ratio);
-                if (els.bigProgressBar) els.bigProgressBar.style.width = `${ratio * 100}%`;
+            const updateRing = (progress) => {
+                const circumference = 2 * Math.PI * 45;
+                const offset = circumference * (1 - progress);
+                els.timerRing.style.strokeDashoffset = offset;
             };
 
             const updateControls = () => {
-                els.timerCtrlBtn.innerHTML = isTimerRunning ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
-                els.timerCtrlBtn.classList.toggle('timer-active', isTimerRunning);
-                els.loopBtn.style.color = isLooping ? 'var(--neon-cyan)' : 'rgba(255,255,255,0.4)';
+                els.loopBtn.style.opacity = isLooping ? '1' : '0.5';
+                els.prevBtn.style.opacity = activeTaskIndex > 0 ? '1' : '0.5';
+                els.skipBtn.style.opacity = activeTaskIndex < activeCircuit.tasks.length - 1 ? '1' : '0.5';
             };
 
-            const playBeep = () => {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.frequency.value = 880;
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            const toggleBigMode = () => {
+                isBigMode = !isBigMode;
+                document.body.classList.toggle('big-timer-mode', isBigMode);
             };
 
-            const finishCircuit = () => {
-                clearInterval(timerInterval);
-                isTimerRunning = false;
-                els.currentTaskName.innerText = "COMPLETE";
-                els.timerDisplay.innerText = "DONE";
-                if (els.bigTimerLabel) els.bigTimerLabel.innerText = "COMPLETE";
+            const exitBigMode = () => {
+                isBigMode = false;
+                document.body.classList.remove('big-timer-mode');
+            };
+
+            const completeCircuit = () => {
+                pauseTimer();
+                alert('Circuit Complete! 🎉');
                 updateControls();
-                exitBigMode(); // Force exit big mode
+                exitBigMode();
+                // Reset background color
+                document.body.style.backgroundColor = 'var(--dark-bg)';
                 setTimeout(() => navigateTo('home'), 2000);
             };
 
             const formatTime = (s) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
 
+            // --- SETTINGS FUNCTIONS ---
+            const toggleFlash = () => {
+                settings.flashEnabled = !settings.flashEnabled;
+                saveSettings();
+                applySettings();
+            };
+
+            const toggleBeep = () => {
+                settings.beepEnabled = !settings.beepEnabled;
+                saveSettings();
+                applySettings();
+            };
+
+            const selectColor = (element) => {
+                const color = element.dataset.color;
+                const type = element.dataset.type;
+
+                // Update settings
+                if (type === 'exercise') {
+                    settings.exerciseColor = color;
+                } else {
+                    settings.breakColor = color;
+                }
+
+                saveSettings();
+                applySettings();
+            };
+
+            const resetSettings = () => {
+                if (confirm('Reset all settings to defaults?')) {
+                    settings = {
+                        flashEnabled: false,
+                        exerciseColor: '#00f3ff',
+                        breakColor: '#ff6600',
+                        beepEnabled: false,
+                        beepSeconds: 5
+                    };
+                    saveSettings();
+                    applySettings();
+                }
+            };
+
             // Initialize Pickers
             setupPicker(els.pickerM, 60);
             setupPicker(els.pickerS, 60);
+            
+            // Setup beep seconds picker
+            const beepPicker = document.querySelector('#beep-settings .picker-container');
+            beepPicker.addEventListener('scroll', () => {
+                const items = [...beepPicker.children];
+                const scrollTop = beepPicker.scrollTop;
+                items.forEach((item, idx) => {
+                    const offset = Math.abs(scrollTop - idx * 50);
+                    item.classList.toggle('active', offset < 25);
+                    if (offset < 25) {
+                        settings.beepSeconds = parseInt(item.dataset.value);
+                        saveSettings();
+                    }
+                });
+            });
+
             initDB();
+            loadSettings();
 
             return {
                 navigateTo,
@@ -753,7 +979,12 @@
                     renderEditor(); app.closeTaskModal();
                 },
                 toggleTimer: () => isTimerRunning ? pauseTimer() : startTimer(),
-                stopTimer: () => { pauseTimer(); setupTimer(); navigateTo('home'); },
+                stopTimer: () => { 
+                    pauseTimer(); 
+                    setupTimer(); 
+                    document.body.style.backgroundColor = 'var(--dark-bg)';
+                    navigateTo('home'); 
+                },
                 skipTask: () => {
                     activeTaskIndex++;
                     loadTask(activeTaskIndex);
@@ -765,14 +996,21 @@
                         loadTask(activeTaskIndex);
                         if (isTimerRunning) endTime = Date.now() + (timeLeftWhenPaused * 1000);
                     } else {
-                        // If already at start, maybe restart the task?
                         loadTask(activeTaskIndex);
                         if (isTimerRunning) endTime = Date.now() + (timeLeftWhenPaused * 1000);
                     }
                 },
                 toggleLoop: () => { isLooping = !isLooping; updateControls(); },
+                toggleBigMode,
+                runCircuit,
 
-                // --- QR LOGIC ---
+                // Settings
+                toggleFlash,
+                toggleBeep,
+                selectColor,
+                resetSettings,
+
+                // QR LOGIC
                 shareCircuit: (id) => {
                     const c = circuits.find(circuit => String(circuit.id) === String(id));
                     if (!c) {
@@ -793,11 +1031,9 @@
                     const data = JSON.stringify(payload);
                     els.qrTitle.innerText = c.name;
 
-                    // Generate deep-link URL
                     const encoded = btoa(encodeURIComponent(data));
                     lastShareUrl = `${window.location.origin}${window.location.pathname}?import=${encoded}`;
 
-                    // Try native share first
                     if (navigator.share) {
                         navigator.share({
                             title: `Aether Circuit: ${c.name}`,
@@ -818,7 +1054,6 @@
                         return;
                     }
 
-                    // Clear previous QR
                     els.qrCode.innerHTML = '';
 
                     try {
@@ -880,7 +1115,7 @@
                             name: obj.n,
                             tasks: obj.t.map(t => ({
                                 name: t.n,
-                                duration: Math.min(Math.max(t.d, 1), 7200), // Clamp 1s - 2h
+                                duration: Math.min(Math.max(t.d, 1), 7200),
                                 type: (t.ty === 'workout' || t.ty === 'break') ? t.ty : 'workout'
                             }))
                         };
@@ -894,19 +1129,16 @@
             };
         })();
 
-        // --- AUTO-IMPORT ON STARTUP ---
+        // AUTO-IMPORT ON STARTUP
         (() => {
             const params = new URLSearchParams(window.location.search);
             const data = params.get("import");
             if (!data) return;
 
-            // Wait a moment for DB to initialize
             setTimeout(() => {
                 try {
                     const json = decodeURIComponent(atob(data));
                     app.importCircuitData(json);
-
-                    // Clean URL
                     history.replaceState({}, document.title, window.location.pathname);
                 } catch (e) {
                     console.error("Link import failed", e);
@@ -915,7 +1147,7 @@
             }, 500);
         })();
 
-        // --- SERVICE WORKER REGISTRATION ---
+        // SERVICE WORKER REGISTRATION
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js').then(reg => {
